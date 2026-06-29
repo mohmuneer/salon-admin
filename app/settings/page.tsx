@@ -257,6 +257,55 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Email Settings */}
+        <div className="card">
+          <div className="card-header">
+            <h2 style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text)' }}>
+              <MailIcon size={16} />{lang === 'ar' ? 'إعدادات البريد الإلكتروني' : 'Email Settings'}
+            </h2>
+          </div>
+          <div className="card-body">
+            <div style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
+              {lang === 'ar'
+                ? '📧 يُستخدم لإرسال إشعارات الحجز والطلبات للعملاء. استخدم Gmail مع "App Password".'
+                : '📧 Used to send booking & order notifications. Use Gmail with an App Password.'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                  {lang === 'ar' ? 'بريد المرسل (Gmail)' : 'Sender Email (Gmail)'}
+                </label>
+                <input
+                  className="input-field" type="email"
+                  placeholder="example@gmail.com"
+                  value={form.email_user || ''}
+                  onChange={e => setForm((f: any) => ({ ...f, email_user: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                  {lang === 'ar' ? 'كلمة مرور التطبيق (App Password)' : 'App Password'}
+                </label>
+                <input
+                  className="input-field" type="password"
+                  placeholder="xxxx xxxx xxxx xxxx"
+                  value={form.email_pass || ''}
+                  onChange={e => setForm((f: any) => ({ ...f, email_pass: e.target.value }))}
+                />
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  {lang === 'ar'
+                    ? 'احصل عليها من: Google Account ← Security ← App Passwords'
+                    : 'Get it from: Google Account → Security → App Passwords'}
+                </p>
+              </div>
+              <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
+                <Save size={16} />{saving ? (lang === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (lang === 'ar' ? 'حفظ إعدادات الإيميل' : 'Save Email Settings')}
+              </button>
+              {saved && <span style={{ color: '#10B981', fontSize: 13 }}>{lang === 'ar' ? 'تم الحفظ بنجاح ✓' : 'Saved ✓'}</span>}
+            </div>
+          </div>
+        </div>
+
         {/* Account Info */}
         <div className="card">
           <div className="card-header">

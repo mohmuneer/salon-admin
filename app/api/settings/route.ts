@@ -25,6 +25,9 @@ const defaults = {
   instagram: '',
   twitter: '',
   snapchat: '',
+  /* Email sender credentials (stored in file only, not DB) */
+  email_user: '',
+  email_pass: '',
 }
 
 async function readFromFile() {
@@ -54,6 +57,9 @@ async function ensureExtendedColumns(pool: any) {
 }
 
 export async function GET() {
+  // Always read file first to get email credentials (stored in file only)
+  const fileData = await readFromFile()
+
   try {
     const { default: pool } = await import('@/lib/db')
     await ensureExtendedColumns(pool)
@@ -81,13 +87,14 @@ export async function GET() {
         twitter:          r.twitter          || '',
         snapchat:         r.snapchat         || '',
         social_links:     Array.isArray(r.social_links) ? r.social_links : (typeof r.social_links === 'string' ? JSON.parse(r.social_links || '[]') : []),
+        email_user:       fileData?.email_user || '',
+        email_pass:       fileData?.email_pass || '',
       }
       await writeToFile(data).catch(() => {})
       return NextResponse.json(data)
     }
   } catch (e) { console.error('[settings GET]', e) }
 
-  const fileData = await readFromFile()
   if (fileData) return NextResponse.json({ ...defaults, ...fileData })
   return NextResponse.json(defaults)
 }
@@ -100,6 +107,7 @@ export async function PUT(req: NextRequest) {
     whatsapp_number, whatsapp_message,
     seo_title, seo_description, seo_keywords, seo_image,
     instagram, twitter, snapchat, social_links,
+    email_user, email_pass,
   } = body
 
   const existing = await readFromFile()
@@ -118,6 +126,8 @@ export async function PUT(req: NextRequest) {
     twitter: twitter || '',
     snapchat: snapchat || '',
     social_links: Array.isArray(social_links) ? social_links : [],
+    email_user: email_user || existing?.email_user || '',
+    email_pass: email_pass || existing?.email_pass || '',
   }
 
   let dbOk = false
