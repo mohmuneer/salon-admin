@@ -264,7 +264,7 @@ export default function DeptPage() {
   const [coName,       setCoName]      = useState('')
   const [coPhone,      setCoPhone]     = useState('')
   const [coAddr,       setCoAddr]      = useState('')
-  const [coPay,        setCoPay]       = useState<'cod'|'bank_transfer'|'direct_debit'>('bank_transfer')
+  const [coPay,        setCoPay]       = useState<'cod'|'bank_transfer'>('bank_transfer')
   const [coBusy,       setCoBusy]      = useState(false)
   const [coDone,       setCoDone]      = useState(false)
   const [coId,         setCoId]        = useState('')
@@ -487,13 +487,11 @@ export default function DeptPage() {
 
   const submitOrder = async () => {
     if (!coName||!coPhone) { setToast({msg:'يرجى تعبئة الاسم والجوال',type:'error'}); return }
-    if (coPay==='direct_debit'&&(!coDbBank||!coDbAcct||!coDbOwner)) { setToast({msg:'يرجى تعبئة بيانات الحساب البنكي',type:'error'}); return }
     setCoBusy(true)
     try {
       const r = await fetch('/api/public-orders',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({items:cart.map(i=>({productId:i.product.id,name:i.product.name_ar,qty:i.qty,priceSar:i.product.price})),
-          customerName:coName,customerPhone:coPhone,address:coAddr,paymentMethod:coPay,totalSar:cartTotal,
-          ...(coPay==='direct_debit'?{debitBank:coDbBank,debitAccount:coDbAcct,debitHolder:coDbOwner}:{})})})
+          customerName:coName,customerPhone:coPhone,address:coAddr,paymentMethod:coPay,totalSar:cartTotal})})
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       setCoId(d.id); setCoDone(true); setCart([])
@@ -1487,9 +1485,9 @@ export default function DeptPage() {
           <div style={{ marginBottom:14 }}>
             <label style={{ display:'block', color:C.textMuted, fontSize:13, marginBottom:8, fontWeight:600 }}>طريقة الدفع</label>
             <div style={{ display:'flex', gap:7, marginBottom:14 }}>
-              {([['bank_transfer','🏦 حوالة بنكية'],['direct_debit','💳 خصم من حساب'],['cod','💵 عند الاستلام']] as const).map(([v,l])=>(
+              {([['bank_transfer','🏦 حوالة بنكية'],['cod','💵 عند الاستلام']] as const).map(([v,l])=>(
                 <button key={v} type="button" onClick={()=>setCoPay(v)}
-                  style={{ flex:1, padding:'9px 4px', borderRadius:10, border:`1px solid ${coPay===v?C.gold:C.border}`, background:coPay===v?`${C.gold}15`:'transparent', color:coPay===v?C.gold:C.textMuted, cursor:'pointer', fontSize:10, fontWeight:coPay===v?700:400, fontFamily:'inherit', whiteSpace:'nowrap' }}>
+                  style={{ flex:1, padding:'9px 8px', borderRadius:10, border:`1px solid ${coPay===v?C.gold:C.border}`, background:coPay===v?`${C.gold}15`:'transparent', color:coPay===v?C.gold:C.textMuted, cursor:'pointer', fontSize:12, fontWeight:coPay===v?700:400, fontFamily:'inherit', whiteSpace:'nowrap' }}>
                   {l}
                 </button>
               ))}
@@ -1526,26 +1524,13 @@ export default function DeptPage() {
               </div>
             )}
 
-            {coPay==='direct_debit'&&(
-              <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
-                {([['اسم البنك',coDbBank,setCoDbBank,'البنك الأهلي السعودي'],['رقم الحساب / الآيبان',coDbAcct,setCoDbAcct,'SA00 0000 0000 0000'],['اسم مالك الحساب',coDbOwner,setCoDbOwner,'الاسم كما في البطاقة']] as const).map(([label,val,set,ph])=>(
-                  <div key={label}>
-                    <label style={{ display:'block', color:C.textMuted, fontSize:11, marginBottom:4, fontWeight:500 }}>{label}</label>
-                    <input value={val} onChange={e=>(set as any)(e.target.value)} placeholder={ph}
-                      style={{ width:'100%', padding:'9px 11px', borderRadius:9, border:`1px solid ${C.border}`, background:'rgba(255,255,255,.04)', color:'#fff', fontSize:12, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
-                  </div>
-                ))}
-                <div style={{ fontSize:11, color:C.textDim, background:`${C.success}0a`, borderRadius:8, padding:'8px 10px' }}>🔒 بياناتك محمية بتشفير كامل.</div>
-              </div>
-            )}
-
             {coPay==='cod'&&(
               <div style={{ background:'rgba(255,255,255,.04)', border:`1px solid ${C.border}`, borderRadius:10, padding:'12px 14px', color:C.textDim, fontSize:12, lineHeight:1.7 }}>
                 💵 سيتم الدفع نقداً عند استلام الطلب أو الزيارة.
               </div>
             )}
           </div>
-          <Btn fullWidth onClick={submitOrder} disabled={coBusy||(coPay==='direct_debit'&&(!coDbBank||!coDbAcct||!coDbOwner))} style={{ padding:'13px' }}>
+          <Btn fullWidth onClick={submitOrder} disabled={coBusy} style={{ padding:'13px' }}>
             {coBusy?'جارٍ...':'تأكيد الطلب — '+cartTotal+' ر.س'}
           </Btn>
         </Modal>

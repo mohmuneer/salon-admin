@@ -2049,7 +2049,7 @@ export default function LamsetAlMalika() {
 
           {/* Payment tabs */}
           <div style={{ margin:'14px 20px 0', display:'flex', gap:8 }}>
-            {([['transfer', Building2, 'حوالة بنكية'],['card', CreditCard, 'بطاقة بنكية'],['debit', Building2, 'خصم من حساب']] as [string,any,string][]).map(([k, Icon, label]) => (
+            {([['transfer', Building2, 'حوالة بنكية'],['card', CreditCard, 'بطاقة بنكية']] as [string,any,string][]).map(([k, Icon, label]) => (
               <button key={k} type="button" onClick={() => setCartPayTab(k as any)}
                 style={{ flex:1, padding:'10px 6px', borderRadius:12, border:cartPayTab===k?`2px solid ${C.gold}`:`1px solid ${C.border}`, background:cartPayTab===k?`${C.gold}18`:'transparent', color:cartPayTab===k?C.gold:C.textMuted, fontWeight:cartPayTab===k?700:500, fontSize:11, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:5, whiteSpace:'nowrap' }}>
                 <Icon size={13} /> {label}
@@ -2384,7 +2384,6 @@ export default function LamsetAlMalika() {
         <div style={{ display:'flex', gap:8, marginBottom:16 }}>
           {([
             ['bank_transfer','🏦 حوالة بنكية'],
-            ['direct_debit', '💳 خصم من حساب'],
             ['cod',          '💵 الدفع عند الاستلام'],
           ] as const).map(([v,l]) => (
             <button key={v} type="button" onClick={() => setCoPay(v as any)}
@@ -2429,26 +2428,6 @@ export default function LamsetAlMalika() {
           </div>
         )}
 
-        {/* ── خصم من حساب form ── */}
-        {coPay==='direct_debit' && (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {[
-              ['اسم البنك', coDebitBank, setCoDebitBank, 'البنك الأهلي السعودي'],
-              ['رقم الحساب / الآيبان', coDebitAcct, setCoDebitAcct, 'SA00 0000 0000 0000'],
-              ['اسم مالك الحساب', coDebitOwner, setCoDebitOwner, 'الاسم كما في البطاقة'],
-            ].map(([label, val, set, ph]) => (
-              <div key={String(label)}>
-                <label style={{ display:'block', color:C.textMuted, fontSize:12, marginBottom:5, fontWeight:500 }}>{label as string}</label>
-                <input value={val as string} onChange={e => (set as any)(e.target.value)} placeholder={ph as string}
-                  style={{ width:'100%', padding:'10px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.04)', color:'#fff', fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
-              </div>
-            ))}
-            <div style={{ background:`${C.success}0a`, border:`1px solid ${C.success}22`, borderRadius:10, padding:'10px 14px', fontSize:12, color:C.textDim }}>
-              🔒 بياناتك محمية بتشفير كامل وتُستخدم فقط لإتمام هذه المعاملة.
-            </div>
-          </div>
-        )}
-
         {/* ── COD info ── */}
         {coPay==='cod' && (
           <div style={{ background:`rgba(255,255,255,0.04)`, border:`1px solid ${C.border}`, borderRadius:12, padding:'14px 16px', color:C.textDim, fontSize:13, lineHeight:1.8 }}>
@@ -2457,7 +2436,7 @@ export default function LamsetAlMalika() {
         )}
       </div>
 
-      <Bt fullWidth onClick={submitOrder} disabled={coLoading || (coPay==='direct_debit' && (!coDebitBank||!coDebitAcct||!coDebitOwner))}
+      <Bt fullWidth onClick={submitOrder} disabled={coLoading}
         style={{ padding:'14px', fontSize:15 }}>
         {coLoading ? 'جارٍ تقديم الطلب...' : `تأكيد الطلب — ${cartTotal.toLocaleString()} ر.س`}
       </Bt>
