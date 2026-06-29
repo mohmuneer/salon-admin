@@ -4,34 +4,41 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, password } = await req.json()
+    const { name, phone, email, password } = await req.json()
 
-    if (!name || !phone || !password) {
-      return NextResponse.json({ error: 'جميع الحقول مطلوبة' }, { status: 400 })
+    if (!name || (!phone && !email) || !password) {
+      return NextResponse.json({ error: 'الاسم وكلمة المرور مطلوبان، مع رقم الجوال أو البريد الإلكتروني' }, { status: 400 })
     }
-    if (!/^05\d{8}$/.test(phone)) {
+    if (phone && !/^(05\d{8}|\+966\d{9}|966\d{9})$/.test(phone.replace(/\s/g, ''))) {
       return NextResponse.json({ error: 'رقم الجوال غير صحيح (05XXXXXXXX)' }, { status: 400 })
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'البريد الإلكتروني غير صحيح' }, { status: 400 })
     }
     if (password.length < 6) {
       return NextResponse.json({ error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' }, { status: 400 })
     }
 
-    const existing = await pool.query('SELECT id FROM users WHERE phone = $1', [phone])
-    if (existing.rows.length > 0) {
-      return NextResponse.json({ error: 'رقم الجوال مسجل مسبقاً' }, { status: 409 })
+    // Check duplicate phone or email
+    if (phone) {
+      const ex = await pool.query('SELECT id FROM users WHERE phone = $1', [phone])
+      if (ex.rows.length > 0) return NextResponse.json({ error: 'رقم الجوال مسجل مسبقاً' }, { status: 409 })
+    }
+    if (email) {
+      const ex = await pool.query('SELECT id FROM users WHERE email = $1', [email])
+      if (ex.rows.length > 0) return NextResponse.json({ error: 'البريد الإلكتروني مسجل مسبقاً' }, { status: 409 })
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
     const result = await pool.query(
-      `INSERT INTO users (name, phone, role, password_hash, is_active, created_at)
-       VALUES ($1, $2, 'customer', $3, true, NOW()) RETURNING id, name, phone, created_at`,
-      [name, phone, passwordHash]
+      `INSERT INTO users (name, phone, email, role, password_hash, is_active, created_at)
+       VALUES ($1, $2, $3, 'customer', $4, true, NOW()) RETURNING id, name, phone, email`,
+      [name, phone || null, email || null, passwordHash]
     )
 
     const user = result.rows[0]
     const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64')
-
-    return NextResponse.json({ ok: true, user: { id: user.id, name: user.name, phone: user.phone }, token })
+    return NextResponse.json({ ok: true, user: { id: user.id, name: user.name, phone: user.phone, email: user.email }, token })
   } catch (err) {
     console.error('register error:', err)
     return NextResponse.json({ error: 'حدث خطأ في التسجيل' }, { status: 500 })

@@ -205,8 +205,8 @@ export default function DeptPage() {
   const [authUser,    setAuthUser]  = useState<any>(null)
   const [showLogin,   setShowLogin] = useState(false)
   const [showReg,     setShowReg]   = useState(false)
-  const [lPhone, setLPhone] = useState(''); const [lPass, setLPass] = useState('')
-  const [rName,  setRName]  = useState(''); const [rPhone, setRPhone] = useState(''); const [rPass, setRPass] = useState('')
+  const [lIdentifier, setLIdentifier] = useState(''); const [lPass, setLPass] = useState('')
+  const [rName,  setRName]  = useState(''); const [rPhone, setRPhone] = useState(''); const [rEmail, setREmail] = useState(''); const [rPass, setRPass] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
 
   /* Booking — multi-step, no auth required */
@@ -309,31 +309,31 @@ export default function DeptPage() {
 
   /* Auth */
   const doLogin = async () => {
-    if (!lPhone||!lPass) { setToast({msg:'يرجى تعبئة جميع الحقول',type:'error'}); return }
+    if (!lIdentifier||!lPass) { setToast({msg:'يرجى تعبئة جميع الحقول',type:'error'}); return }
     setAuthBusy(true)
     try {
-      const r = await fetch('/api/public-auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lPhone,password:lPass})})
+      const r = await fetch('/api/public-auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:lIdentifier,password:lPass})})
       const d = await r.json()
       if (!r.ok) { setToast({msg:d.error||'خطأ',type:'error'}); setAuthBusy(false); return }
       localStorage.setItem('lamset_token', d.token)
       setAuthUser(d.user); setBkName(d.user.name||''); setBkPhone(d.user.phone||'')
-      setShowLogin(false); setLPhone(''); setLPass('')
+      setShowLogin(false); setLIdentifier(''); setLPass('')
       setToast({msg:`مرحباً ${d.user.name} 👋`,type:'success'})
     } catch { setToast({msg:'خطأ في الاتصال',type:'error'}) }
     setAuthBusy(false)
   }
 
   const doRegister = async () => {
-    if (!rName||!rPhone||!rPass) { setToast({msg:'يرجى تعبئة جميع الحقول',type:'error'}); return }
+    if (!rName||(!rPhone&&!rEmail)||!rPass) { setToast({msg:'الاسم وكلمة المرور مطلوبان مع رقم الجوال أو البريد',type:'error'}); return }
     if (rPass.length<6) { setToast({msg:'كلمة المرور 6 أحرف على الأقل',type:'error'}); return }
     setAuthBusy(true)
     try {
-      const r = await fetch('/api/public-auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:rName,phone:rPhone,password:rPass})})
+      const r = await fetch('/api/public-auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:rName,phone:rPhone||undefined,email:rEmail||undefined,password:rPass})})
       const d = await r.json()
       if (!r.ok) { setToast({msg:d.error||'خطأ',type:'error'}); setAuthBusy(false); return }
       localStorage.setItem('lamset_token', d.token)
       setAuthUser(d.user); setBkName(d.user.name||''); setBkPhone(d.user.phone||'')
-      setShowReg(false); setRName(''); setRPhone(''); setRPass('')
+      setShowReg(false); setRName(''); setRPhone(''); setREmail(''); setRPass('')
       setToast({msg:'تم إنشاء الحساب ✓',type:'success'})
     } catch { setToast({msg:'خطأ في الاتصال',type:'error'}) }
     setAuthBusy(false)
@@ -895,24 +895,26 @@ export default function DeptPage() {
       {/* ── Auth modals ── */}
       {showLogin && (
         <Modal onClose={()=>setShowLogin(false)} title="تسجيل الدخول">
-          <Field label="رقم الجوال" value={lPhone} onChange={setLPhone} type="tel" placeholder="05XXXXXXXX" />
+          <Field label="البريد الإلكتروني أو رقم الجوال" value={lIdentifier} onChange={setLIdentifier} placeholder="sara@example.com أو 05XXXXXXXX" />
           <Field label="كلمة المرور" value={lPass} onChange={setLPass} type="password" />
           <Btn fullWidth onClick={doLogin} disabled={authBusy} style={{ padding:'13px' }}>{authBusy?'جاري...':'دخول'}</Btn>
           <div style={{ textAlign:'center', marginTop:12 }}>
             <span style={{ color:C.textDim, fontSize:13 }}>ليس لديك حساب؟ </span>
-            <button onClick={()=>{setShowLogin(false);setShowReg(true)}} style={{ background:'none',border:'none',color:C.gold,cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>إنشاء حساب</button>
+            <button onClick={()=>{setShowLogin(false);setShowReg(true);setLIdentifier('');setLPass('')}} style={{ background:'none',border:'none',color:C.gold,cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>إنشاء حساب</button>
           </div>
         </Modal>
       )}
       {showReg && (
         <Modal onClose={()=>setShowReg(false)} title="إنشاء حساب">
-          <Field label="الاسم" value={rName} onChange={setRName} />
+          <Field label="الاسم الكامل *" value={rName} onChange={setRName} placeholder="أدخل اسمك" />
           <Field label="رقم الجوال" value={rPhone} onChange={setRPhone} type="tel" placeholder="05XXXXXXXX" />
-          <Field label="كلمة المرور" value={rPass} onChange={setRPass} type="password" />
+          <Field label="البريد الإلكتروني" value={rEmail} onChange={setREmail} type="email" placeholder="sara@example.com" />
+          <p style={{ fontSize:11, color:C.textDim, marginTop:-8, marginBottom:10 }}>رقم الجوال أو البريد الإلكتروني — واحد على الأقل مطلوب</p>
+          <Field label="كلمة المرور *" value={rPass} onChange={setRPass} type="password" placeholder="6 أحرف على الأقل" />
           <Btn fullWidth onClick={doRegister} disabled={authBusy} style={{ padding:'13px' }}>{authBusy?'جاري...':'إنشاء حساب'}</Btn>
           <div style={{ textAlign:'center', marginTop:12 }}>
             <span style={{ color:C.textDim, fontSize:13 }}>لديك حساب؟ </span>
-            <button onClick={()=>{setShowReg(false);setShowLogin(true)}} style={{ background:'none',border:'none',color:C.gold,cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>تسجيل الدخول</button>
+            <button onClick={()=>{setShowReg(false);setShowLogin(true);setRName('');setRPhone('');setREmail('');setRPass('')}} style={{ background:'none',border:'none',color:C.gold,cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>تسجيل الدخول</button>
           </div>
         </Modal>
       )}
