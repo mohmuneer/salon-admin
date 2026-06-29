@@ -11,6 +11,9 @@ export interface SalonSettings {
   opening_time: string
   closing_time: string
   theme?: string
+  email_user?: string
+  email_pass?: string
+  [key: string]: any
 }
 
 const defaults: SalonSettings = {
