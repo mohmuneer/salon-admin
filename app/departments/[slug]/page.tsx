@@ -456,6 +456,12 @@ export default function DeptPage() {
     } else { setToast({msg:d.error||'حدث خطأ',type:'error'}) }
   }
 
+  /* Require login before any action */
+  const requireAuth = (action: () => void) => {
+    if (!authUser) { setToast({ msg: 'يرجى تسجيل الدخول أولاً', type: 'error' }); setShowLogin(true); return }
+    action()
+  }
+
   /* Cart */
   const addToCart = (p:Product) => {
     setCart(prev=>{ const ex=prev.find(i=>i.product.id===p.id); if(ex) return prev.map(i=>i.product.id===p.id?{...i,qty:i.qty+1}:i); return [...prev,{product:p,qty:1}] })
@@ -698,7 +704,7 @@ export default function DeptPage() {
                     <div style={{ fontSize:12, color:C.textDim, marginBottom:14, display:'flex', alignItems:'center', gap:4 }}><Clock size={11}/> {s.duration_min} دقيقة</div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
                       <span style={{ fontSize:20, fontWeight:900, color:C.gold }}>{s.price}<span style={{ fontSize:10, color:C.textDim }}> ر.س</span></span>
-                      <button onClick={()=>openBooking(s)} style={{ padding:'9px 20px', borderRadius:12, background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:700, fontSize:13, border:'none', cursor:'pointer', transition:'all .25s' }}
+                      <button onClick={()=>requireAuth(()=>openBooking(s))} style={{ padding:'9px 20px', borderRadius:12, background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:700, fontSize:13, border:'none', cursor:'pointer', transition:'all .25s' }}
                         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=`0 8px 22px ${C.goldGlow}`}}
                         onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
                         احجز الآن
@@ -744,7 +750,7 @@ export default function DeptPage() {
                       </div>
                     )}
                     <div style={{ fontSize:17, fontWeight:800, color:C.gold, marginBottom:10, marginTop:'auto', paddingTop:6 }}>{p.price}<span style={{ fontSize:9, color:C.textDim }}> ر.س</span></div>
-                    <button onClick={()=>addToCart(p)} disabled={p.stock_qty===0}
+                    <button onClick={()=>requireAuth(()=>addToCart(p))} disabled={p.stock_qty===0}
                       style={{ padding:'8px 12px', borderRadius:11, background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:700, fontSize:11, border:'none',
                         cursor:p.stock_qty===0?'not-allowed':'pointer', opacity:p.stock_qty===0?.4:1, width:'100%', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:4, fontFamily:'inherit' }}
                       onMouseEnter={e=>{ if(p.stock_qty!==0) e.currentTarget.style.transform='translateY(-1px)' }}
