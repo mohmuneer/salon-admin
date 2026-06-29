@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /tmp)",
+      "Bash(curl -s -b cookies.txt -o /dev/null -w \"status: %{http_code}, location: %{redirect_url}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -b cookies.txt -o /dev/null -w \"status: %{http_code}\\\\n\" http://localhost:3000/portal)",
+      "Bash(curl -s -b cookies.txt http://localhost:3000/api/portal/appointments?scope=today)",
+      "Bash(curl -s -b cookies.txt http://localhost:3000/api/portal/notifications)"
+    ]
+  }
+}
