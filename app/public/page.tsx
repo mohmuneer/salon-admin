@@ -147,7 +147,7 @@ export default function LamsetAlMalika() {
   const [ratingText, setRatingText] = useState('')
   const [ratingLoading, setRatingLoading] = useState(false)
   const [cartPayOpen, setCartPayOpen] = useState(false)
-  const [cartPayTab, setCartPayTab] = useState<'transfer'|'debit'|'card'>('transfer')
+  const [cartPayTab, setCartPayTab] = useState<'transfer'|'card'>('transfer')
   const [cardNumber, setCardNumber] = useState('')
   const [cardExpiry, setCardExpiry] = useState('')
   const [cardCvv, setCardCvv] = useState('')
@@ -213,7 +213,7 @@ export default function LamsetAlMalika() {
   const [coDebitAcct,  setCoDebitAcct]  = useState('')
   const [coDebitOwner, setCoDebitOwner] = useState('')
   const [coAddr, setCoAddr] = useState('')
-  const [coPay, setCoPay] = useState<'cod'|'bank_transfer'|'direct_debit'>('bank_transfer')
+  const [coPay, setCoPay] = useState<'cod'|'bank_transfer'>('bank_transfer')
   const [coLoading, setCoLoading] = useState(false)
   const [coDone, setCoDone] = useState(false)
   const [coId, setCoId] = useState('')
@@ -561,9 +561,6 @@ export default function LamsetAlMalika() {
 
   const submitOrder = async () => {
     if (!coName || !coPhone) { setToast({ msg: 'يرجى تعبئة الاسم والجوال', type: 'error' }); return }
-    if (coPay === 'direct_debit' && (!coDebitBank || !coDebitAcct || !coDebitOwner)) {
-      setToast({ msg: 'يرجى تعبئة بيانات الحساب البنكي', type: 'error' }); return
-    }
     setCoLoading(true)
     try {
       const r = await fetch('/api/public-orders', {
@@ -573,7 +570,6 @@ export default function LamsetAlMalika() {
           items: cart.map(i => ({productId:i.product.id,name:i.product.name_ar,qty:i.qty,priceSar:i.product.price})),
           customerName: coName, customerPhone: coPhone, address: coAddr,
           paymentMethod: coPay, totalSar: cartTotal,
-          ...(coPay==='direct_debit' ? { debitBank: coDebitBank, debitAccount: coDebitAcct, debitHolder: coDebitOwner } : {}),
         })
       })
       const d = await r.json()
@@ -1970,18 +1966,25 @@ export default function LamsetAlMalika() {
                       </div>
                       {cartPaidOr.map((o:any) => {
                         const items:any[] = Array.isArray(o.items) ? o.items : []
-                        const isVerified = o.payment_status === 'paid'
-                        const isCancelled = o.status === 'cancelled'
-                        const badgeBg = isVerified ? 'rgba(34,197,94,0.2)' : isCancelled ? 'rgba(239,68,68,0.2)' : `${C.gold}22`
-                        const badgeColor = isVerified ? C.success : isCancelled ? C.error : C.gold
-                        const badgeLabel = isVerified ? '✓ موثق' : isCancelled ? '✕ ملغى' : '⏳ قيد المراجعة'
-                        const borderColor = isVerified ? 'rgba(34,197,94,0.25)' : isCancelled ? 'rgba(239,68,68,0.2)' : `${C.gold}33`
+                        const isCancelled  = o.status === 'cancelled'
+                        const isVerified   = o.payment_status === 'paid' || o.receipt_status === 'verified'
+                        const isRejected   = o.receipt_status === 'rejected'
+                        const isPending    = o.receipt_status === 'pending'
+                        const badgeBg    = isVerified ? 'rgba(34,197,94,0.2)' : isRejected ? 'rgba(239,68,68,0.2)' : isCancelled ? 'rgba(239,68,68,0.12)' : `${C.gold}22`
+                        const badgeColor = isVerified ? C.success : isRejected ? C.error : isCancelled ? C.error : C.gold
+                        const badgeLabel = isVerified ? '✓ موثق' : isRejected ? '✕ مرفوض' : isCancelled ? '✕ ملغى' : isPending ? '⏳ قيد المراجعة' : '⏳ قيد المراجعة'
+                        const borderColor = isVerified ? 'rgba(34,197,94,0.25)' : isRejected ? 'rgba(239,68,68,0.25)' : isCancelled ? 'rgba(239,68,68,0.2)' : `${C.gold}33`
                         return (
                           <div key={o.id} style={{ borderRadius:14, background:`rgba(255,255,255,0.04)`, border:`1px solid ${borderColor}`, marginBottom:10, padding:'12px 14px' }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
                               <div>
                                 <div style={{ color:'#fff', fontWeight:700, fontSize:13 }}>طلب #{String(o.id).slice(0,8).toUpperCase()}</div>
                                 <div style={{ color:C.textDim, fontSize:11, marginTop:2 }}>📅 {new Date(o.created_at).toLocaleDateString('ar-SA',{month:'short',day:'numeric'})} · {items.length} منتج</div>
+                                {isRejected && o.receipt_notes && (
+                                  <div style={{ color:C.error, fontSize:11, marginTop:4, padding:'4px 8px', borderRadius:6, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)' }}>
+                                    ⚠️ {o.receipt_notes}
+                                  </div>
+                                )}
                               </div>
                               <span style={{ padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:700, background:badgeBg, color:badgeColor, whiteSpace:'nowrap', marginRight:8 }}>{badgeLabel}</span>
                             </div>
@@ -2233,22 +2236,6 @@ export default function LamsetAlMalika() {
             )
           })()}
 
-          {/* Direct debit */}
-          {cartPayTab === 'debit' && (
-            <div style={{ margin:'14px 20px 0' }}>
-              {[['اسم البنك', cartDebitBank, setCartDebitBank, 'البنك الأهلي'],['رقم الحساب / الآيبان', cartDebitAcct, setCartDebitAcct, 'SA00...'],['اسم مالك الحساب', cartDebitOwner, setCartDebitOwner, 'الاسم كما في البطاقة']].map(([label,val,set,ph]) => (
-                <div key={String(label)} style={{ marginBottom:12 }}>
-                  <label style={{ display:'block', fontSize:12, color:C.textDim, marginBottom:5, fontWeight:600 }}>{label as string}</label>
-                  <input value={val as string} onChange={e => (set as any)(e.target.value)} placeholder={ph as string}
-                    style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
-                </div>
-              ))}
-              <button type="button" disabled={cartPayLoading || !cartDebitBank || !cartDebitAcct || !cartDebitOwner} onClick={() => submitCartPayment('خصم من حساب')}
-                style={{ width:'100%', marginTop:6, padding:14, borderRadius:14, border:'none', background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit', opacity:(cartPayLoading||!cartDebitBank||!cartDebitAcct||!cartDebitOwner)?0.6:1 }}>
-                {cartPayLoading ? 'جارٍ المعالجة...' : `تأكيد الخصم — ${cartGrandTotal.toLocaleString()} ر.س`}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     )}

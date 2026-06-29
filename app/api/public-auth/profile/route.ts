@@ -87,7 +87,19 @@ export async function GET(req: NextRequest) {
             JOIN products p ON p.id = oi.product_id
             WHERE oi.order_id = o.id
            ), '[]'::json
-         ) AS items
+         ) AS items,
+         COALESCE(
+           (SELECT pr.status FROM payment_receipts pr
+            WHERE pr.order_id = o.id::text
+            ORDER BY pr.created_at DESC LIMIT 1),
+           'none'
+         ) AS receipt_status,
+         COALESCE(
+           (SELECT pr.notes FROM payment_receipts pr
+            WHERE pr.order_id = o.id::text
+            ORDER BY pr.created_at DESC LIMIT 1),
+           ''
+         ) AS receipt_notes
        FROM orders o
        LEFT JOIN salons sl ON sl.id = o.salon_id
        LEFT JOIN users u2 ON u2.id = o.customer_id
