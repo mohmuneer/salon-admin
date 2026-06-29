@@ -250,6 +250,7 @@ export default function DeptPage() {
   /* Cart */
   const [cart,     setCart]    = useState<CItem[]>([])
   const [cartOpen, setCartOpen]= useState(false)
+  const [cartTab,  setCartTab] = useState<'unpaid'|'paid'>('unpaid')
   const [coOpen,       setCoOpen]      = useState(false)
   const [coName,       setCoName]      = useState('')
   const [coPhone,      setCoPhone]     = useState('')
@@ -461,6 +462,20 @@ export default function DeptPage() {
   const cartTotal = cart.reduce((s,i)=>s+i.product.price*i.qty,0)
   const cartCount = cart.reduce((s,i)=>s+i.qty,0)
 
+  // ── Derived activity data (used in unified cart) ──────────────────────
+  const bkStatusClr = (s:string) => s==='completed'?C.success:s==='cancelled'||s==='no_show'?C.error:s==='confirmed'?C.blue:C.gold
+  const bkStatusLbl: Record<string,string> = {pending:'قيد الانتظار',confirmed:'مؤكد',in_progress:'جارٍ',completed:'مكتمل',cancelled:'ملغي',no_show:'لم يحضر'}
+  const orStatusLbl: Record<string,string> = {pending:'قيد الانتظار',confirmed:'مؤكد',preparing:'قيد التجهيز',shipped:'في الطريق',delivered:'مسلّم',cancelled:'ملغي'}
+  const orStatusClr = (s:string) => s==='delivered'?C.success:s==='cancelled'?C.error:s==='confirmed'?C.blue:C.gold
+  const unpaidBks  = myBookings.filter(b=>!['cancelled','completed','no_show'].includes(b.status)&&!actPaidIds.has(String(b.id)))
+  const unpaidOrds = myOrders.filter(o=>o.status!=='cancelled'&&o.payment_status!=='paid'&&!actPaidIds.has(String(o.id)))
+  const paidBks    = myBookings.filter(b=>b.status==='completed'||actPaidIds.has(String(b.id)))
+  const paidOrds   = myOrders.filter(o=>o.payment_status==='paid'||actPaidIds.has(String(o.id)))
+  const actUnpaidTotal = [...unpaidBks,...unpaidOrds].reduce((s,x)=>s+Number(x.total||x.service_price||0),0)
+  const grandTotal     = cartTotal + actUnpaidTotal
+  const totalUnpaidCount = cartCount + unpaidBks.length + unpaidOrds.length
+  const paidCount = paidBks.length + paidOrds.length
+
   const submitOrder = async () => {
     if (!coName||!coPhone) { setToast({msg:'يرجى تعبئة الاسم والجوال',type:'error'}); return }
     if (coPay==='direct_debit'&&(!coDbBank||!coDbAcct||!coDbOwner)) { setToast({msg:'يرجى تعبئة بيانات الحساب البنكي',type:'error'}); return }
@@ -560,14 +575,10 @@ export default function DeptPage() {
                 <LogIn size={12}/> دخول
               </button>
             )}
-            {/* My Activity button */}
-            <button onClick={()=>{ const p=localStorage.getItem('lamset_last_phone')||authUser?.phone||''; setActivityPhone(p); setShowActivity(true); if(p) loadActivity(p) }}
-              style={{ padding:'7px 10px', borderRadius:9, background:'rgba(255,255,255,0.06)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:4, color:C.textMuted, fontSize:12 }}>
-              📋
-            </button>
-            <button onClick={()=>setCartOpen(true)} style={{ padding:'7px 11px', borderRadius:9, background:'rgba(255,255,255,0.06)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
+            <button onClick={()=>{ const p=localStorage.getItem('lamset_last_phone')||authUser?.phone||''; setActivityPhone(p); setCartTab('unpaid'); setCartOpen(true); if(p) loadActivity(p) }}
+              style={{ padding:'7px 11px', borderRadius:9, background:'rgba(255,255,255,0.06)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
               <ShoppingCart size={15} color={C.gold}/>
-              {cartCount>0 && <span style={{ color:C.gold, fontWeight:700, fontSize:11 }}>{cartCount}</span>}
+              {totalUnpaidCount>0 && <span style={{ background:C.gold, color:C.navy, fontWeight:800, fontSize:10, padding:'1px 6px', borderRadius:20 }}>{totalUnpaidCount}</span>}
             </button>
           </div>
         </div>
@@ -893,15 +904,18 @@ export default function DeptPage() {
         </Modal>
       )}
 
-      {/* ══ My Activity Drawer ══ */}
-      {showActivity && (
-        <div style={{ position:'fixed', inset:0, zIndex:1001 }} onClick={()=>setShowActivity(false)}>
+      {/* ══ Unified Cart Drawer (products + bookings + orders) ══ */}
+      {cartOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:1001 }} onClick={()=>setCartOpen(false)}>
           <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)' }} />
-          <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', right:0, top:0, bottom:0, width:'100%', maxWidth:480, background:C.navyCard, borderRight:`1px solid ${C.border}`, display:'flex', flexDirection:'column', animation:'su .3s ease' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', right:0, top:0, bottom:0, width:'100%', maxWidth:480, background:C.navyCard, borderLeft:`1px solid ${C.border}`, display:'flex', flexDirection:'column', animation:'su .3s ease' }}>
             {/* Header */}
             <div style={{ padding:'18px 20px', borderBottom:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
-              <h2 style={{ color:'#fff', fontSize:17, fontWeight:700, margin:0 }}>📋 نشاطي</h2>
-              <button onClick={()=>setShowActivity(false)} style={{ background:'rgba(255,255,255,.07)',border:'none',color:C.textMuted,cursor:'pointer',borderRadius:8,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center' }}><X size={15}/></button>
+              <h2 style={{ color:'#fff', fontSize:17, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:8 }}>
+                <ShoppingCart size={16} color={C.gold}/> السلة
+                {totalUnpaidCount>0&&<span style={{ background:C.gold, color:C.navy, fontSize:10, fontWeight:800, padding:'2px 8px', borderRadius:20 }}>{totalUnpaidCount}</span>}
+              </h2>
+              <button onClick={()=>setCartOpen(false)} style={{ background:'rgba(255,255,255,.07)',border:'none',color:C.textMuted,cursor:'pointer',borderRadius:8,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center' }}><X size={15}/></button>
             </div>
 
             {/* Phone input if not set */}
@@ -942,11 +956,11 @@ export default function DeptPage() {
               <>
                 {/* Tabs */}
                 <div style={{ display:'flex', borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
-                  {([['unpaid','غير مدفوعة',unpaidCount],['paid','مدفوعة',paidBks.length+paidOrds.length]] as const).map(([k,l,cnt])=>(
-                    <button key={k} type="button" onClick={()=>{setActivityTab(k);setActDetail(null)}}
-                      style={{ flex:1, padding:'12px 8px', background:'transparent', border:'none', borderBottom:activityTab===k?`3px solid ${C.gold}`:'3px solid transparent', marginBottom:-1, color:activityTab===k?C.gold:C.textMuted, fontWeight:activityTab===k?700:400, fontSize:13, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                  {([['unpaid','غير مدفوعة',totalUnpaidCount],['paid','مدفوعة',paidCount]] as const).map(([k,l,cnt])=>(
+                    <button key={k} type="button" onClick={()=>{setCartTab(k);setActDetail(null)}}
+                      style={{ flex:1, padding:'12px 8px', background:'transparent', border:'none', borderBottom:cartTab===k?`3px solid ${C.gold}`:'3px solid transparent', marginBottom:-1, color:cartTab===k?C.gold:C.textMuted, fontWeight:cartTab===k?700:400, fontSize:13, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
                       {l}
-                      {cnt>0&&<span style={{ background:activityTab===k?C.gold:'rgba(255,255,255,.12)', color:activityTab===k?C.navy:'#fff', fontSize:10, fontWeight:800, padding:'1px 7px', borderRadius:20 }}>{cnt}</span>}
+                      {cnt>0&&<span style={{ background:cartTab===k?C.gold:'rgba(255,255,255,.12)', color:cartTab===k?C.navy:'#fff', fontSize:10, fontWeight:800, padding:'1px 7px', borderRadius:20 }}>{cnt}</span>}
                     </button>
                   ))}
                 </div>
@@ -964,14 +978,33 @@ export default function DeptPage() {
                   {loadingActivity && <div style={{ textAlign:'center', padding:40, color:C.textDim }}>جاري التحميل...</div>}
 
                   {/* ══ TAB 1: غير مدفوعة ══ */}
-                  {!loadingActivity && activityTab==='unpaid' && (
-                    unpaidCount===0 ? (
+                  {!loadingActivity && cartTab==='unpaid' && (
+                    totalUnpaidCount===0 ? (
                       <div style={{ textAlign:'center', padding:40 }}>
                         <div style={{ fontSize:44, marginBottom:10 }}>✅</div>
                         <p style={{ color:C.textDim }}>لا توجد مدفوعات معلقة</p>
                       </div>
                     ) : (
                       <>
+                        {/* ── منتجات السلة ── */}
+                        {cart.length>0&&<>
+                          <p style={{ color:C.textDim, fontSize:11, fontWeight:600, marginBottom:8, display:'flex', alignItems:'center', gap:4 }}>📦 منتجات السلة</p>
+                          {cart.map(item=>(
+                            <div key={item.product.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:`1px solid ${C.border}` }}>
+                              <div style={{ flex:1 }}>
+                                <div style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{item.product.name_ar}</div>
+                                <div style={{ color:C.gold, fontWeight:700, fontSize:12 }}>{(item.product.price*item.qty).toLocaleString()} ر.س</div>
+                              </div>
+                              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                <button onClick={()=>updQty(item.product.id,-1)} style={{ width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:'transparent',color:C.textMuted,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><Minus size={11}/></button>
+                                <span style={{ color:'#fff', fontWeight:700, fontSize:13, minWidth:18, textAlign:'center' }}>{item.qty}</span>
+                                <button onClick={()=>updQty(item.product.id,1)} style={{ width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:'transparent',color:C.textMuted,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><Plus size={11}/></button>
+                              </div>
+                              <button onClick={()=>rmCart(item.product.id)} style={{ width:26,height:26,borderRadius:6,border:'none',background:`${C.error}22`,color:C.error,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><Trash2 size={11}/></button>
+                            </div>
+                          ))}
+                          <div style={{ marginBottom:14 }}/>
+                        </>}
                         {unpaidBks.length>0&&<>
                           <p style={{ color:C.textDim, fontSize:11, fontWeight:600, marginBottom:8, display:'flex', alignItems:'center', gap:4 }}>✂️ خدمات محجوزة</p>
                           {unpaidBks.map(b=>(
@@ -1056,7 +1089,7 @@ export default function DeptPage() {
                   )}
 
                   {/* ══ TAB 2: مدفوعة ══ */}
-                  {!loadingActivity && activityTab==='paid' && (
+                  {!loadingActivity && cartTab==='paid' && (
                     paidBks.length===0 && paidOrds.length===0 ? (
                       <div style={{ textAlign:'center', padding:40 }}><div style={{ fontSize:44, marginBottom:10 }}>📭</div><p style={{ color:C.textDim }}>لا توجد عناصر مدفوعة</p></div>
                     ) : (
@@ -1120,13 +1153,29 @@ export default function DeptPage() {
                 </div>
 
                 {/* ─ Fixed payment button ─ */}
-                {activityTab==='unpaid' && unpaidCount>0 && (
+                {cartTab==='unpaid' && totalUnpaidCount>0 && (
                   <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'10px 14px', background:C.navyCard, borderTop:`1px solid ${C.border}`, flexShrink:0 }}>
-                    <button type="button" onClick={()=>setShowActPay(true)}
-                      style={{ width:'100%', padding:'12px', borderRadius:12, border:'none', background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-                      💳 إتمام الدفع · {unpaidCount} عنصر
-                      <span style={{ background:'rgba(0,0,0,0.15)', padding:'2px 10px', borderRadius:20, fontSize:13 }}>{unpaidTotal.toLocaleString()} ر.س</span>
-                    </button>
+                    {/* Breakdown */}
+                    {cart.length>0 && (unpaidBks.length+unpaidOrds.length)>0 && (
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:C.textDim, marginBottom:6 }}>
+                        <span>منتجات: {cartTotal.toLocaleString()} ر.س</span>
+                        <span>خدمات وطلبات: {actUnpaidTotal.toLocaleString()} ر.س</span>
+                      </div>
+                    )}
+                    <div style={{ display:'flex', gap:8 }}>
+                      {cart.length>0 && (
+                        <button type="button" onClick={()=>{setCartOpen(false);setCoOpen(true);setCoName(authUser?.name||'');setCoPhone(authUser?.phone||activityPhone||'')}}
+                          style={{ flex:1, padding:'11px 6px', borderRadius:11, border:`1px solid ${C.gold}55`, background:`${C.gold}15`, color:C.gold, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                          🛍️ منتجات ({cartTotal.toLocaleString()})
+                        </button>
+                      )}
+                      {(unpaidBks.length+unpaidOrds.length)>0 && (
+                        <button type="button" onClick={()=>setShowActPay(true)}
+                          style={{ flex:2, padding:'11px 6px', borderRadius:11, border:'none', background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:800, fontSize:13, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                          💳 دفع الكل · {grandTotal.toLocaleString()} ر.س
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1270,47 +1319,6 @@ export default function DeptPage() {
         </div>
       )}
 
-      {/* ── Cart drawer ── */}
-      {cartOpen && (
-        <div style={{ position:'fixed', inset:0, zIndex:1000 }} onClick={()=>setCartOpen(false)}>
-          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.5)', backdropFilter:'blur(4px)' }} />
-          <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', left:0,top:0,bottom:0, width:'100%', maxWidth:400, background:C.navyCard, borderLeft:`1px solid ${C.border}`, padding:22, display:'flex', flexDirection:'column', animation:'su .3s ease', overflowY:'auto' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
-              <h2 style={{ color:'#fff', fontSize:16, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><ShoppingCart size={15} color={C.gold}/> السلة</h2>
-              <button onClick={()=>setCartOpen(false)} style={{ background:'rgba(255,255,255,.06)',border:'none',color:C.textMuted,cursor:'pointer',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center' }}><X size={14}/></button>
-            </div>
-            {cart.length===0
-              ? <div style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:C.textDim,gap:10 }}>
-                  <span style={{ fontSize:36 }}>🛒</span><span style={{ fontSize:14 }}>السلة فارغة</span>
-                </div>
-              : <>
-                  <div style={{ flex:1, overflowY:'auto', marginBottom:12 }}>
-                    {cart.map(item=>(
-                      <div key={item.product.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:`1px solid ${C.border}` }}>
-                        <div style={{ flex:1 }}>
-                          <div style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{item.product.name_ar}</div>
-                          <div style={{ color:C.gold, fontWeight:700, fontSize:12 }}>{item.product.price*item.qty} ر.س</div>
-                        </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                          <button onClick={()=>updQty(item.product.id,-1)} style={{ width:25,height:25,borderRadius:6,border:`1px solid ${C.border}`,background:'transparent',color:C.textMuted,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><Minus size={10}/></button>
-                          <span style={{ color:'#fff', fontWeight:700, fontSize:13, minWidth:16, textAlign:'center' }}>{item.qty}</span>
-                          <button onClick={()=>updQty(item.product.id,1)} style={{ width:25,height:25,borderRadius:6,border:`1px solid ${C.border}`,background:'transparent',color:C.textMuted,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><Plus size={10}/></button>
-                        </div>
-                        <button onClick={()=>rmCart(item.product.id)} style={{ width:25,height:25,borderRadius:6,border:'none',background:`${C.error}22`,color:C.error,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><Trash2 size={10}/></button>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12 }}>
-                      <span style={{ color:C.textMuted, fontSize:13 }}>المجموع</span>
-                      <span style={{ color:C.gold, fontWeight:800, fontSize:18 }}>{cartTotal} <span style={{ fontSize:10, color:C.textDim }}>ر.س</span></span>
-                    </div>
-                    <Btn fullWidth onClick={()=>{setCartOpen(false);setCoOpen(true);setCoName(authUser?.name||'');setCoPhone(authUser?.phone||'')}} style={{ padding:'12px', fontSize:13 }}>إتمام الطلب</Btn>
-                  </div>
-                </>}
-          </div>
-        </div>
-      )}
 
       {/* ── Checkout ── */}
       {coOpen && !coDone && (
