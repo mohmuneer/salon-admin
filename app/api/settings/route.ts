@@ -52,6 +52,8 @@ async function ensureExtendedColumns(pool: any) {
       BEGIN ALTER TABLE salon_settings ADD COLUMN twitter          TEXT NOT NULL DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
       BEGIN ALTER TABLE salon_settings ADD COLUMN snapchat         TEXT NOT NULL DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
       BEGIN ALTER TABLE salon_settings ADD COLUMN social_links     JSONB NOT NULL DEFAULT '[]'; EXCEPTION WHEN duplicate_column THEN NULL; END;
+      BEGIN ALTER TABLE salon_settings ADD COLUMN email_user       TEXT NOT NULL DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+      BEGIN ALTER TABLE salon_settings ADD COLUMN email_pass       TEXT NOT NULL DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
     END $$;
   `)
 }
@@ -87,8 +89,8 @@ export async function GET() {
         twitter:          r.twitter          || '',
         snapchat:         r.snapchat         || '',
         social_links:     Array.isArray(r.social_links) ? r.social_links : (typeof r.social_links === 'string' ? JSON.parse(r.social_links || '[]') : []),
-        email_user:       fileData?.email_user || '',
-        email_pass:       fileData?.email_pass || '',
+        email_user:       r.email_user || fileData?.email_user || '',
+        email_pass:       r.email_pass || fileData?.email_pass || '',
       }
       await writeToFile(data).catch(() => {})
       return NextResponse.json(data)
@@ -140,15 +142,19 @@ export async function PUT(req: NextRequest) {
         opening_time, closing_time, theme,
         whatsapp_number, whatsapp_message,
         seo_title, seo_description, seo_keywords, seo_image,
-        instagram, twitter, snapchat, social_links, updated_at
+        instagram, twitter, snapchat, social_links,
+        email_user, email_pass, updated_at
       )
-      VALUES (1,$1,$2,$3,$4,$5,$6,$7,NULLIF($8,'')::time,NULLIF($9,'')::time,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20::jsonb,NOW())
+      VALUES (1,$1,$2,$3,$4,$5,$6,$7,NULLIF($8,'')::time,NULLIF($9,'')::time,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20::jsonb,$21,$22,NOW())
       ON CONFLICT (id) DO UPDATE SET
         name=$1, name_en=$2, logo_url=$3, address=$4, city=$5, phone=$6, email=$7,
         opening_time=NULLIF($8,'')::time, closing_time=NULLIF($9,'')::time, theme=$10,
         whatsapp_number=$11, whatsapp_message=$12,
         seo_title=$13, seo_description=$14, seo_keywords=$15, seo_image=$16,
-        instagram=$17, twitter=$18, snapchat=$19, social_links=$20::jsonb, updated_at=NOW()
+        instagram=$17, twitter=$18, snapchat=$19, social_links=$20::jsonb,
+        email_user=CASE WHEN $21 <> '' THEN $21 ELSE salon_settings.email_user END,
+        email_pass=CASE WHEN $22 <> '' THEN $22 ELSE salon_settings.email_pass END,
+        updated_at=NOW()
     `, [
       name, name_en, logo_url, address, city, phone, email,
       opening_time, closing_time, mergedTheme,
@@ -156,6 +162,7 @@ export async function PUT(req: NextRequest) {
       data.seo_title, data.seo_description, data.seo_keywords, data.seo_image,
       data.instagram, data.twitter, data.snapchat,
       JSON.stringify(data.social_links),
+      data.email_user, data.email_pass,
     ])
     dbOk = true
   } catch (e) { console.error('[settings PUT]', e) }
