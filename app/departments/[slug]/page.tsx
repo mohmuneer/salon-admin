@@ -241,6 +241,15 @@ export default function DeptPage() {
   const [modifyingBk,    setModifyingBk]   = useState<any>(null)
   const [actPaidIds,     setActPaidIds]     = useState<Set<string>>(new Set())
   const [showActPay,     setShowActPay]     = useState(false)
+  const [actPayMethod,   setActPayMethod]   = useState<'transfer'|'card'>('transfer')
+  const [actReceiptFile, setActReceiptFile] = useState<File|null>(null)
+  const [actReceiptPrev, setActReceiptPrev] = useState<string|null>(null)
+  const [actReceiptErr,  setActReceiptErr]  = useState('')
+  const [actPayBusy,     setActPayBusy]     = useState(false)
+  const [actCardNum,     setActCardNum]     = useState('')
+  const [actCardExp,     setActCardExp]     = useState('')
+  const [actCardCvv,     setActCardCvv]     = useState('')
+  const [actCardHolder,  setActCardHolder]  = useState('')
   const [actDetail,      setActDetail]      = useState<any>(null)
   const [actDetailType,  setActDetailType]  = useState<'booking'|'order'>('booking')
   const ACT_PAID_KEY = 'lamset-paid-activity-ids'
@@ -1222,47 +1231,182 @@ export default function DeptPage() {
 
                 {/* ─ Payment modal ─ */}
                 {showActPay && (
-                  <div onClick={()=>setShowActPay(false)} style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-                    <div onClick={e=>e.stopPropagation()} style={{ width:'100%', maxWidth:480, background:C.navyCard, borderRadius:'20px 20px 0 0', padding:22, maxHeight:'85vh', overflowY:'auto' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-                        <div><h3 style={{ color:'#fff',fontWeight:800,fontSize:16,margin:0 }}>💳 إتمام الدفع</h3><p style={{ color:C.textDim,fontSize:11,margin:'3px 0 0' }}>{unpaidCount} عنصر</p></div>
-                        <button type="button" onClick={()=>setShowActPay(false)} style={{ background:'rgba(255,255,255,.08)',border:'none',borderRadius:'50%',width:30,height:30,cursor:'pointer',color:C.textMuted,display:'flex',alignItems:'center',justifyContent:'center' }}>✕</button>
+                  <div onClick={()=>{ setShowActPay(false); setActReceiptFile(null); setActReceiptPrev(null); setActReceiptErr('') }} style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(4px)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+                    <div onClick={e=>e.stopPropagation()} style={{ width:'100%', maxWidth:520, background:C.navyCard, borderRadius:'22px 22px 0 0', maxHeight:'92vh', overflowY:'auto', display:'flex', flexDirection:'column' }}>
+
+                      {/* Header */}
+                      <div style={{ padding:'18px 20px 0', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
+                        <div>
+                          <h3 style={{ color:'#fff', fontWeight:800, fontSize:17, margin:0 }}>إتمام الدفع</h3>
+                          <p style={{ color:C.textDim, fontSize:12, margin:'3px 0 0' }}>{unpaidBks.length + unpaidOrds.length} عنصر · {grandTotal.toLocaleString()} ر.س</p>
+                        </div>
+                        <button type="button" onClick={()=>{ setShowActPay(false); setActReceiptFile(null); setActReceiptPrev(null); setActReceiptErr('') }} style={{ background:'rgba(255,255,255,.08)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:C.textMuted, display:'flex', alignItems:'center', justifyContent:'center' }}><X size={15}/></button>
                       </div>
+
                       {/* Summary */}
-                      <div style={{ background:'rgba(255,255,255,.04)',borderRadius:10,padding:'10px 12px',marginBottom:14 }}>
-                        {unpaidBks.map(b=><div key={b.id} style={{ display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0' }}><span style={{ color:C.textMuted }}>{b.service_name}</span><span style={{ color:C.gold,fontWeight:600 }}>{Number(b.total||b.service_price||0).toLocaleString()} ر.س</span></div>)}
-                        {unpaidBks.length>0&&unpaidOrds.length>0&&<div style={{ borderTop:`1px dashed ${C.border}`,margin:'6px 0' }}/>}
-                        {unpaidOrds.map(o=><div key={o.id} style={{ display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0' }}><span style={{ color:C.textMuted }}>طلب #{o.id?.slice(-6).toUpperCase()}</span><span style={{ color:C.gold,fontWeight:600 }}>{Number(o.total||0).toLocaleString()} ر.س</span></div>)}
-                        <div style={{ display:'flex',justifyContent:'space-between',paddingTop:10,marginTop:6,borderTop:`2px solid ${C.gold}` }}>
-                          <span style={{ fontWeight:800,fontSize:14,color:'#fff' }}>الإجمالي الكلي</span>
-                          <span style={{ fontWeight:900,fontSize:18,color:C.gold }}>{unpaidTotal.toLocaleString()} ر.س</span>
+                      <div style={{ margin:'14px 20px 0', background:'rgba(255,255,255,.04)', borderRadius:12, padding:'10px 14px' }}>
+                        {unpaidBks.map(b=><div key={b.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textMuted }}>✂️ {b.service_name}</span><span style={{ color:C.gold, fontWeight:600 }}>{Number(b.total||b.service_price||0).toLocaleString()} ر.س</span></div>)}
+                        {unpaidOrds.map(o=><div key={o.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textMuted }}>📦 طلب #{o.id?.slice(-6).toUpperCase()}</span><span style={{ color:C.gold, fontWeight:600 }}>{Number(o.total||0).toLocaleString()} ر.س</span></div>)}
+                        <div style={{ display:'flex', justifyContent:'space-between', paddingTop:10, marginTop:4 }}>
+                          <span style={{ fontWeight:800, fontSize:14, color:'#fff' }}>الإجمالي</span>
+                          <span style={{ fontWeight:900, fontSize:20, color:C.gold }}>{grandTotal.toLocaleString()} ر.س</span>
                         </div>
                       </div>
-                      {/* IBAN */}
-                      <div style={{ background:`${C.gold}0f`,border:`1px solid ${C.gold}33`,borderRadius:12,padding:'12px 14px',marginBottom:12 }}>
-                        <div style={{ color:C.textDim,fontSize:11,marginBottom:5 }}>الآيبان — IBAN</div>
-                        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
-                          <span style={{ fontFamily:'monospace',fontSize:12,fontWeight:800,color:'#fff',direction:'ltr',letterSpacing:2 }}>
-                            {deptIbanShow ? deptBank.iban : deptBank.iban.slice(0,4)+' **** **** **** '+deptBank.iban.slice(-4)}
-                          </span>
-                          <div style={{ display:'flex',gap:5 }}>
-                            <button type="button" onClick={()=>setDeptIbanShow(s=>!s)} style={{ background:'rgba(255,255,255,.08)',border:'none',borderRadius:7,padding:'4px 8px',cursor:'pointer',color:C.textMuted,fontSize:11 }}>{deptIbanShow?'🙈':'👁'}</button>
-                            <button type="button" onClick={()=>{navigator.clipboard.writeText(deptBank.iban).catch(()=>{}); setDeptIbanCopy(true); setTimeout(()=>setDeptIbanCopy(false),2000)}} style={{ background:deptIbanCopy?`${C.success}22`:`${C.gold}22`,border:`1px solid ${deptIbanCopy?C.success:C.gold}55`,borderRadius:7,padding:'4px 10px',cursor:'pointer',color:deptIbanCopy?C.success:C.gold,fontSize:11,fontWeight:700,fontFamily:'inherit' }}>
-                              {deptIbanCopy?'✓ تم':'📋 نسخ'}
-                            </button>
+
+                      {/* Payment method tabs */}
+                      <div style={{ display:'flex', margin:'16px 20px 0', gap:10 }}>
+                        {([['transfer','🏦 تحويل بنكي'],['card','💳 بطاقة بنكية']] as const).map(([k,l])=>(
+                          <button key={k} type="button" onClick={()=>setActPayMethod(k)}
+                            style={{ flex:1, padding:'11px 8px', borderRadius:12, border:actPayMethod===k?`2px solid ${C.gold}`:`1px solid ${C.border}`, background:actPayMethod===k?`${C.gold}15`:'transparent', color:actPayMethod===k?C.gold:C.textMuted, fontWeight:actPayMethod===k?700:400, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all .2s' }}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={{ padding:'16px 20px 24px' }}>
+
+                        {/* ══ تحويل بنكي ══ */}
+                        {actPayMethod==='transfer' && <>
+                          {/* IBAN */}
+                          <div style={{ background:`${C.gold}0f`, border:`1px solid ${C.gold}33`, borderRadius:12, padding:'12px 14px', marginBottom:12 }}>
+                            <div style={{ color:C.textDim, fontSize:11, marginBottom:5 }}>الآيبان — IBAN</div>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
+                              <span style={{ fontFamily:'monospace', fontSize:13, fontWeight:800, color:'#fff', direction:'ltr', letterSpacing:2 }}>
+                                {deptIbanShow ? deptBank.iban : deptBank.iban.slice(0,4)+' **** **** **** '+deptBank.iban.slice(-4)}
+                              </span>
+                              <div style={{ display:'flex', gap:5 }}>
+                                <button type="button" onClick={()=>setDeptIbanShow(s=>!s)} style={{ background:'rgba(255,255,255,.08)', border:'none', borderRadius:7, padding:'4px 8px', cursor:'pointer', color:C.textMuted, fontSize:11 }}>{deptIbanShow?'🙈':'👁'}</button>
+                                <button type="button" onClick={()=>{ navigator.clipboard.writeText(deptBank.iban).catch(()=>{}); setDeptIbanCopy(true); setTimeout(()=>setDeptIbanCopy(false),2000) }} style={{ background:deptIbanCopy?`${C.success}22`:`${C.gold}22`, border:`1px solid ${deptIbanCopy?C.success:C.gold}55`, borderRadius:7, padding:'4px 10px', cursor:'pointer', color:deptIbanCopy?C.success:C.gold, fontSize:11, fontWeight:700, fontFamily:'inherit' }}>
+                                  {deptIbanCopy?'✓ تم':'📋 نسخ'}
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                          {/* Bank details */}
+                          {[['البنك',deptBank.bank_name],['المستفيد',deptBank.account_holder],['رقم الحساب',deptBank.account_number]].map(([l,v])=>(
+                            <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:`1px solid ${C.border}` }}>
+                              <span style={{ color:C.textDim, fontSize:12 }}>{l}</span>
+                              <span style={{ color:'#fff', fontWeight:700, fontSize:13 }}>{v||'—'}</span>
+                            </div>
+                          ))}
+
+                          {/* Receipt upload */}
+                          <div style={{ marginTop:16, marginBottom:4 }}>
+                            <label style={{ display:'block', color:C.textMuted, fontSize:12, fontWeight:600, marginBottom:8 }}>📎 رفع إيصال التحويل</label>
+                            {actReceiptPrev
+                              ? <div style={{ position:'relative', borderRadius:12, overflow:'hidden', border:`1px solid ${C.gold}44` }}>
+                                  <img src={actReceiptPrev} alt="receipt" style={{ width:'100%', maxHeight:180, objectFit:'contain', background:'rgba(0,0,0,.3)' }} />
+                                  <button type="button" onClick={()=>{ setActReceiptFile(null); setActReceiptPrev(null) }} style={{ position:'absolute', top:8, left:8, background:'rgba(0,0,0,.6)', border:'none', borderRadius:'50%', width:26, height:26, cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>✕</button>
+                                </div>
+                              : <label style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, padding:'22px 16px', borderRadius:12, border:`2px dashed ${C.border}`, cursor:'pointer', transition:'border .2s' }}
+                                  onMouseEnter={e=>e.currentTarget.style.borderColor=`${C.gold}55`}
+                                  onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+                                  <span style={{ fontSize:32 }}>📄</span>
+                                  <span style={{ color:C.textMuted, fontSize:12, textAlign:'center' }}>اضغط لرفع صورة الإيصال<br/><span style={{ fontSize:10, color:C.textDim }}>JPG, PNG, PDF حتى 5 MB</span></span>
+                                  <input type="file" accept="image/*,application/pdf" style={{ display:'none' }}
+                                    onChange={e=>{ const f=e.target.files?.[0]; if(!f) return; if(f.size>5*1024*1024){ setActReceiptErr('الملف أكبر من 5 MB'); return } setActReceiptErr(''); setActReceiptFile(f); const r=new FileReader(); r.onload=ev=>setActReceiptPrev(ev.target?.result as string); r.readAsDataURL(f) }} />
+                                </label>
+                            }
+                            {actReceiptErr && <p style={{ color:C.error, fontSize:11, marginTop:5 }}>{actReceiptErr}</p>}
+                          </div>
+
+                          <div style={{ background:`${C.gold}0a`, border:`1px solid ${C.gold}22`, borderRadius:9, padding:'9px 12px', margin:'12px 0', fontSize:11, color:C.textDim, lineHeight:1.7 }}>
+                            ⚠️ قم بالتحويل أولاً ثم ارفع صورة الإيصال واضغط تأكيد.
+                          </div>
+
+                          <button type="button" disabled={actPayBusy} onClick={async()=>{
+                            setActPayBusy(true)
+                            try {
+                              if (actReceiptFile) {
+                                const fd = new FormData()
+                                fd.append('file', actReceiptFile)
+                                fd.append('customer_phone', activityPhone)
+                                fd.append('amount', String(grandTotal))
+                                fd.append('appointment_ids', JSON.stringify(unpaidBks.map(b=>String(b.id))))
+                                await fetch('/api/public-transfer-receipt', { method:'POST', body:fd }).catch(()=>{})
+                              }
+                              doPayAll()
+                            } catch { doPayAll() }
+                            setActPayBusy(false)
+                            setActReceiptFile(null); setActReceiptPrev(null)
+                          }}
+                            style={{ width:'100%', padding:'14px', borderRadius:13, border:'none', background:actPayBusy?'rgba(255,255,255,.1)':`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:actPayBusy?C.textDim:C.navy, fontWeight:800, fontSize:14, cursor:actPayBusy?'wait':'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all .2s', opacity:actPayBusy?.7:1 }}>
+                            {actPayBusy ? '⏳ جاري الإرسال...' : `✓ تأكيد التحويل — ${grandTotal.toLocaleString()} ر.س`}
+                          </button>
+                        </>}
+
+                        {/* ══ بطاقة بنكية ══ */}
+                        {actPayMethod==='card' && <>
+                          {/* Card preview */}
+                          <div style={{ borderRadius:16, padding:'20px 22px', marginBottom:18, background:`linear-gradient(135deg,${C.navyLight} 0%,#1a3060 100%)`, border:`1px solid ${C.gold}33`, position:'relative', overflow:'hidden', minHeight:130 }}>
+                            <div style={{ position:'absolute', top:-20, right:-20, width:120, height:120, borderRadius:'50%', background:`${C.gold}10` }} />
+                            <div style={{ position:'absolute', bottom:-30, left:-10, width:100, height:100, borderRadius:'50%', background:`${C.gold}08` }} />
+                            <div style={{ position:'relative' }}>
+                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
+                                <span style={{ color:C.gold, fontSize:13, fontWeight:700, letterSpacing:2 }}>GLAMOUR</span>
+                                <span style={{ color:'#fff', fontSize:22, fontWeight:300 }}>VISA</span>
+                              </div>
+                              <div style={{ fontFamily:'monospace', fontSize:16, color:'#fff', letterSpacing:4, marginBottom:12 }}>
+                                {actCardNum.replace(/(.{4})/g,'$1 ').trim() || '**** **** **** ****'}
+                              </div>
+                              <div style={{ display:'flex', gap:24 }}>
+                                <div><div style={{ color:C.textDim, fontSize:9, marginBottom:2 }}>CARDHOLDER</div><div style={{ color:'#fff', fontSize:12, fontWeight:600 }}>{actCardHolder||'— — — —'}</div></div>
+                                <div><div style={{ color:C.textDim, fontSize:9, marginBottom:2 }}>EXPIRES</div><div style={{ color:'#fff', fontSize:12, fontWeight:600 }}>{actCardExp||'MM/YY'}</div></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Card form */}
+                          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                            <div>
+                              <label style={{ display:'block', color:C.textMuted, fontSize:11, fontWeight:600, marginBottom:5 }}>رقم البطاقة</label>
+                              <input value={actCardNum} maxLength={19}
+                                onChange={e=>setActCardNum(e.target.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim().slice(0,19))}
+                                placeholder="0000 0000 0000 0000" dir="ltr"
+                                style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:15, fontFamily:'monospace', letterSpacing:2, outline:'none', boxSizing:'border-box' }} />
+                            </div>
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                              <div>
+                                <label style={{ display:'block', color:C.textMuted, fontSize:11, fontWeight:600, marginBottom:5 }}>تاريخ الانتهاء</label>
+                                <input value={actCardExp} maxLength={5}
+                                  onChange={e=>{ let v=e.target.value.replace(/\D/g,''); if(v.length>=3) v=v.slice(0,2)+'/'+v.slice(2,4); setActCardExp(v) }}
+                                  placeholder="MM/YY" dir="ltr"
+                                  style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:14, fontFamily:'monospace', outline:'none', boxSizing:'border-box' }} />
+                              </div>
+                              <div>
+                                <label style={{ display:'block', color:C.textMuted, fontSize:11, fontWeight:600, marginBottom:5 }}>CVV</label>
+                                <input value={actCardCvv} maxLength={4} type="password"
+                                  onChange={e=>setActCardCvv(e.target.value.replace(/\D/g,'').slice(0,4))}
+                                  placeholder="•••"
+                                  style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:14, fontFamily:'monospace', outline:'none', boxSizing:'border-box' }} />
+                              </div>
+                            </div>
+                            <div>
+                              <label style={{ display:'block', color:C.textMuted, fontSize:11, fontWeight:600, marginBottom:5 }}>اسم حامل البطاقة</label>
+                              <input value={actCardHolder} onChange={e=>setActCardHolder(e.target.value.toUpperCase())} placeholder="MOHAMMED ALI" dir="ltr"
+                                style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:13, fontFamily:'monospace', letterSpacing:1, outline:'none', boxSizing:'border-box' }} />
+                            </div>
+                          </div>
+
+                          <div style={{ background:'rgba(34,197,94,0.08)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:9, padding:'9px 12px', margin:'14px 0', fontSize:11, color:'rgba(34,197,94,0.9)', lineHeight:1.7, display:'flex', alignItems:'center', gap:8 }}>
+                            🔒 معلوماتك محمية بتشفير SSL 256-bit
+                          </div>
+
+                          <button type="button"
+                            disabled={actPayBusy || actCardNum.replace(/\s/g,'').length < 16 || actCardExp.length < 5 || actCardCvv.length < 3 || !actCardHolder}
+                            onClick={async()=>{
+                              setActPayBusy(true)
+                              await new Promise(r=>setTimeout(r,1400))
+                              doPayAll()
+                              setActPayBusy(false)
+                              setActCardNum(''); setActCardExp(''); setActCardCvv(''); setActCardHolder('')
+                            }}
+                            style={{ width:'100%', padding:'14px', borderRadius:13, border:'none', background:`linear-gradient(135deg,#1a56db,#2f7bff)`, color:'#fff', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:8, opacity:(actPayBusy||actCardNum.replace(/\s/g,'').length<16||actCardExp.length<5||actCardCvv.length<3||!actCardHolder)?.5:1, transition:'opacity .2s' }}>
+                            {actPayBusy ? '⏳ جاري المعالجة...' : `💳 ادفع الآن — ${grandTotal.toLocaleString()} ر.س`}
+                          </button>
+                        </>}
+
                       </div>
-                      {[['البنك',deptBank.bank_name],['المستفيد',deptBank.account_holder],['رقم الحساب',deptBank.account_number]].map(([l,v])=>(
-                        <div key={l} style={{ display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:`1px solid ${C.border}` }}>
-                          <span style={{ color:C.textDim,fontSize:12 }}>{l}</span>
-                          <span style={{ color:'#fff',fontWeight:700,fontSize:12 }}>{v||'—'}</span>
-                        </div>
-                      ))}
-                      <div style={{ background:`${C.gold}0a`,border:`1px solid ${C.gold}22`,borderRadius:9,padding:'9px 12px',margin:'12px 0',fontSize:11,color:C.textDim,lineHeight:1.7 }}>
-                        ⚠️ بعد إتمام التحويل اضغط "تأكيد" وستنتقل جميع البنود إلى تبويب "مدفوعة".
-                      </div>
-                      <Btn fullWidth onClick={doPayAll} style={{ padding:'13px',fontSize:14 }}>✓ تأكيد التحويل — {unpaidTotal.toLocaleString()} ر.س</Btn>
                     </div>
                   </div>
                 )}
