@@ -1775,12 +1775,36 @@ export default function LamsetAlMalika() {
           {/* ══ TAB 1: غير مدفوعة ══ */}
           {cartTab === 'unpaid' && (
             cartUnpaidCount === 0
-              ? <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', color:C.textDim, gap:10, paddingTop:60 }}>
-                  <span style={{ fontSize:40 }}>🛒</span>
-                  <span style={{ fontSize:14 }}>السلة فارغة</span>
-                  <span style={{ fontSize:12, color:C.textDim, textAlign:'center', maxWidth:200 }}>أضف منتجات أو احجز خدمة لتظهر هنا</span>
-                  <Bt variant="ghost" onClick={() => setCartOpen(false)}>تصفح الخدمات</Bt>
-                </div>
+              ? !authUser
+                ? /* غير مسجل دخول */
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', color:C.textDim, gap:12, paddingTop:60 }}>
+                    <span style={{ fontSize:44 }}>🔐</span>
+                    <span style={{ fontSize:14, color:'#fff' }}>سجل دخولك لعرض حجوزاتك</span>
+                    <span style={{ fontSize:12, textAlign:'center', maxWidth:220, lineHeight:1.6 }}>
+                      قم بتسجيل الدخول لعرض الحجوزات والطلبات النشطة في سلتك
+                    </span>
+                    <button type="button" onClick={() => { setCartOpen(false); setShowLogin(true) }}
+                      style={{ marginTop:6, padding:'11px 28px', borderRadius:12, border:'none', background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+                      تسجيل الدخول
+                    </button>
+                    <button type="button" onClick={() => { setCartOpen(false); setShowRegister(true) }}
+                      style={{ padding:'8px 20px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, color:C.textMuted, cursor:'pointer', fontSize:12, fontFamily:'inherit' }}>
+                      إنشاء حساب جديد
+                    </button>
+                  </div>
+                : profileLoading
+                  ? /* جاري التحميل */
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:12, paddingTop:60 }}>
+                      <div style={{ width:36, height:36, borderRadius:'50%', border:`3px solid ${C.border}`, borderTopColor:C.gold, animation:'sp .8s linear infinite' }} />
+                      <span style={{ fontSize:13, color:C.textDim }}>جارٍ تحميل حجوزاتك...</span>
+                    </div>
+                  : /* مسجل دخول وسلة فارغة */
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', color:C.textDim, gap:10, paddingTop:60 }}>
+                      <span style={{ fontSize:40 }}>🛒</span>
+                      <span style={{ fontSize:14 }}>لا توجد حجوزات أو طلبات حالية</span>
+                      <span style={{ fontSize:12, color:C.textDim, textAlign:'center', maxWidth:200 }}>أضف منتجات أو احجز خدمة لتظهر هنا</span>
+                      <Bt variant="ghost" onClick={() => setCartOpen(false)}>تصفح الخدمات</Bt>
+                    </div>
               : <>
                   {/* Products */}
                   {cart.length > 0 && (
