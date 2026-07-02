@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useLang, useSidebar, useTheme, Theme } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { useSalonSettings } from '@/lib/useSalonSettings'
+import { useDashboardData } from '@/lib/useDashboardData'
+import { getNotifIcon, getNotifColor } from '@/components/dashboard/shared'
 import { Bell, Globe, LogOut, Menu, Search, Check, Palette, ChevronDown, Settings } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import SalonLogo from '@/components/SalonLogo'
@@ -29,6 +31,9 @@ export default function Header() {
   const { data: session } = useSession()
   const userName = session?.user?.name || 'Admin'
   const initial = userName.charAt(0).toUpperCase()
+  const { data: dashboardData } = useDashboardData()
+  const notifications = dashboardData?.notifications || []
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length
 
   const themeRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -115,7 +120,7 @@ export default function Header() {
             title={tr.notifications}
           >
             <Bell size={18} />
-            <span className="badge-dot" />
+            {unreadCount > 0 && <span className="badge-dot" />}
           </button>
           {showNotifications && (
             <div className="dropdown-menu" style={{ width: 320, insetInlineEnd: -60 }}>
@@ -124,19 +129,48 @@ export default function Header() {
                 padding: '12px 16px', borderBottom: '1px solid var(--border)'
               }}>
                 <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{tr.notifications}</span>
-                <button
-                  onClick={() => setShowNotifications(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-muted)' }}
-                >
-                  <Globe size={14} />
-                </button>
+                {unreadCount > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: 'rgba(239,68,68,0.1)', color: '#EF4444' }}>
+                    {unreadCount} {lang === 'ar' ? 'جديد' : 'new'}
+                  </span>
+                )}
               </div>
-              <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                {tr.noNotifications}
-              </div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  {tr.noNotifications}
+                </div>
+              ) : (
+                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                  {notifications.slice(0, 5).map((n: any) => {
+                    const Icon = getNotifIcon(n.type)
+                    const color = getNotifColor(n.type, 'var(--primary)')
+                    return (
+                      <div key={n.id} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px',
+                        background: n.is_read ? 'transparent' : 'var(--primary-bg)',
+                        borderBottom: '1px solid var(--border-light)',
+                      }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon size={14} color={color} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: n.is_read ? 400 : 600, lineHeight: 1.4 }}>{n.body_ar}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                            {n.created_at ? new Date(n.created_at).toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        <Link href="/settings" className="header-icon-btn" title={tr.settings}>
+          <Settings size={18} />
+        </Link>
 
         <div ref={userRef} style={{ position: 'relative' }}>
           <button
@@ -188,13 +222,14 @@ export default function Header() {
   )
 }
 
-function Link({ href, children, className, onClick, style }: { href: string; children: React.ReactNode; className?: string; onClick?: () => void; style?: React.CSSProperties }) {
+function Link({ href, children, className, onClick, style, title }: { href: string; children: React.ReactNode; className?: string; onClick?: () => void; style?: React.CSSProperties; title?: string }) {
   return (
     <NextLink
       href={href}
       className={className}
       onClick={onClick}
       style={style}
+      title={title}
     >
       {children}
     </NextLink>

@@ -18,6 +18,7 @@ export async function GET() {
       staffPerf,
       vipCustomers,
       notifs,
+      recentCustomers,
     ] = await Promise.all([
       // ─── Core stats ────────────────────────────────────────────────────
       pool.query(`
@@ -155,6 +156,9 @@ export async function GET() {
             WHERE a.status = 'completed'
               AND a.date >= date_trunc('month', CURRENT_DATE)
           )::int AS completed,
+          COUNT(a.id)   FILTER (
+            WHERE a.date >= date_trunc('month', CURRENT_DATE)
+          )::int AS total_assigned,
           COALESCE(SUM(a.total) FILTER (
             WHERE a.status = 'completed'
               AND a.date >= date_trunc('month', CURRENT_DATE)
@@ -191,6 +195,21 @@ export async function GET() {
         ORDER BY created_at DESC
         LIMIT 5
       `),
+
+      // ─── Recent customers by last visit ─────────────────────────────────
+      pool.query(`
+        SELECT
+          u.id,
+          u.name,
+          MAX(a.date) AS last_visit,
+          COUNT(DISTINCT a.id)::int AS visits
+        FROM users u
+        JOIN appointments a ON a.customer_id = u.id
+        WHERE u.role = 'customer'
+        GROUP BY u.id, u.name
+        ORDER BY last_visit DESC
+        LIMIT 5
+      `),
     ])
 
     return NextResponse.json({
@@ -206,6 +225,7 @@ export async function GET() {
       staffPerformance:    staffPerf.rows,
       vipCustomers:        vipCustomers.rows,
       notifications:       notifs.rows,
+      recentCustomers:     recentCustomers.rows,
     })
   } catch (err) {
     console.error('[dashboard]', err)
@@ -244,6 +264,7 @@ export async function GET() {
       staffPerformance:  [],
       vipCustomers:      [],
       notifications:     [],
+      recentCustomers:   [],
     })
   }
 }

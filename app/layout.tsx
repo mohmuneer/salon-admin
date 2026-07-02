@@ -6,6 +6,7 @@ import { SessionProvider } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import PortalHeader from '@/components/PortalHeader'
+import QueryProvider from '@/components/QueryProvider'
 import { Lang } from '@/lib/translations'
 
 export const LangContext = createContext<{
@@ -143,13 +144,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
       </head>
       <body dir={dir}>
-        <SessionProvider>
-          <LangContext.Provider value={{ lang, setLang }}>
-            <ThemeContext.Provider value={{ theme, setTheme }}>
-              <AdminShell>{children}</AdminShell>
-            </ThemeContext.Provider>
-          </LangContext.Provider>
-        </SessionProvider>
+        <QueryProvider>
+          <SessionProvider>
+            <LangContext.Provider value={{ lang, setLang }}>
+              <ThemeContext.Provider value={{ theme, setTheme }}>
+                <AdminShell>{children}</AdminShell>
+              </ThemeContext.Provider>
+            </LangContext.Provider>
+          </SessionProvider>
+        </QueryProvider>
       </body>
     </html>
   )
