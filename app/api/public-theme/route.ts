@@ -86,18 +86,7 @@ export async function PUT(req: NextRequest) {
     console.error('[public-theme PUT] DB error:', e)
   }
 
-  // 2 — Sync to salon_settings so customer app (/api/settings) picks up the change
-  try {
-    await pool.query(`
-      INSERT INTO salon_settings (id, theme, updated_at)
-      VALUES (1, $1, NOW())
-      ON CONFLICT (id) DO UPDATE SET theme = EXCLUDED.theme, updated_at = NOW()
-    `, [themeKey])
-  } catch (e2) {
-    console.error('[public-theme PUT] salon_settings error:', e2)
-  }
-
-  // 3 — File fallback (always sync so server-side reads stay current)
+  // 2 — File fallback (always sync so server-side reads stay current)
   await writeFile_({
     public_theme: themeKey,
     public_primary_color: color,
