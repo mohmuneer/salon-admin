@@ -450,20 +450,33 @@ export default function LamsetAlMalika() {
         setReceiptUploading(false)
       }
 
-      // 2. Create product order if any
+      // 2. Products: attach to the same booking when paying together with a service;
+      //    otherwise (no booking in this checkout) create a standalone product order.
       if (cart.length > 0) {
-        const pmMap: Record<string,string> = { 'حوالة بنكية': 'bank_transfer', 'خصم من حساب': 'direct_debit', 'بطاقة بنكية': 'card' }
-        await fetch('/api/public-orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: cart.map(i => ({ productId: i.product.id, name: i.product.name_ar, qty: i.qty, priceSar: i.product.price })),
-            customerName: authUser?.name || '', customerPhone: authUser?.phone || '',
-            address: '', paymentMethod: pmMap[method] || 'card',
-            totalSar: cartTotal,
-            ...(method === 'خصم من حساب' ? { debitBank: cartDebitBank, debitAccount: cartDebitAcct, debitHolder: cartDebitOwner } : {}),
+        const targetAppt = cartUnpaidBk[0]
+        if (targetAppt) {
+          await fetch('/api/public-attach-appointment-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              appointmentId: targetAppt.id,
+              items: cart.map(i => ({ productId: i.product.id, qty: i.qty, priceSar: i.product.price })),
+            })
           })
-        })
+        } else {
+          const pmMap: Record<string,string> = { 'حوالة بنكية': 'bank_transfer', 'خصم من حساب': 'direct_debit', 'بطاقة بنكية': 'card' }
+          await fetch('/api/public-orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: cart.map(i => ({ productId: i.product.id, name: i.product.name_ar, qty: i.qty, priceSar: i.product.price })),
+              customerName: authUser?.name || '', customerPhone: authUser?.phone || '',
+              address: '', paymentMethod: pmMap[method] || 'card',
+              totalSar: cartTotal,
+              ...(method === 'خصم من حساب' ? { debitBank: cartDebitBank, debitAccount: cartDebitAcct, debitHolder: cartDebitOwner } : {}),
+            })
+          })
+        }
       }
 
       // 3. Mark bookings paid + clear cart
@@ -1488,10 +1501,16 @@ export default function LamsetAlMalika() {
                           <span>🕐 {b.start_time?.slice(0,5)}{b.end_time?` – ${b.end_time?.slice(0,5)}`:''}</span>
                         </div>
 
+                        {/* Attached products */}
+                        {Array.isArray(b.products)&&b.products.length>0&&<div style={{ background:'rgba(255,255,255,.04)', borderRadius:10, padding:'8px 12px', marginBottom:10 }}>
+                          <p style={{ color:C.textDim, fontSize:11, fontWeight:600, marginBottom:4 }}>🛍 منتجات مرفقة</p>
+                          {b.products.map((it:any,i:number)=><div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0' }}><span style={{ color:'#fff' }}>{it.name} × {it.qty}</span><span style={{ color:C.gold, fontWeight:700 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span></div>)}
+                        </div>}
+
                         {/* Price row */}
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:10, borderTop:`1px solid ${C.border}` }}>
                           <span style={{ color:C.gold, fontWeight:800, fontSize:17 }}>
-                            {Number(b.price||b.total||0).toLocaleString()} ر.س
+                            {Number(b.total||b.price||0).toLocaleString()} ر.س
                           </span>
                           {b.duration_min&&<span style={{ fontSize:11, color:C.textDim }}>⏱ {b.duration_min} دقيقة</span>}
                         </div>
@@ -1614,7 +1633,7 @@ export default function LamsetAlMalika() {
                               {b.duration_min&&<span>⏱ {b.duration_min}د</span>}
                             </div>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:10, borderTop:`1px solid ${C.border}` }}>
-                              <span style={{ color:C.gold, fontWeight:900, fontSize:18 }}>{Number(b.price||b.total||0).toLocaleString()} ر.س</span>
+                              <span style={{ color:C.gold, fontWeight:900, fontSize:18 }}>{Number(b.total||b.price||0).toLocaleString()} ر.س</span>
                               <button type="button" onClick={()=>{setPubDetailT('booking');setPubDetail(b)}}
                                 style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:12, fontWeight:600, fontFamily:'inherit' }}>👁 عرض التفاصيل</button>
                             </div>
@@ -1674,9 +1693,22 @@ export default function LamsetAlMalika() {
               ['🏢','الفرع',pubDetail.branch_name||'—'],
               ['⏱','المدة',pubDetail.duration_min?`${pubDetail.duration_min} دقيقة`:'—'],
             ].map(([e,l,v])=><div key={String(l)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textDim, fontSize:13 }}>{e} {l}</span><span style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{v}</span></div>)}
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:12, borderTop:`2px solid ${C.gold}` }}>
-              <span style={{ color:C.textDim, fontWeight:600 }}>سعر الخدمة</span>
-              <span style={{ color:C.gold, fontWeight:900, fontSize:22 }}>{Number(pubDetail.price||pubDetail.total||0).toLocaleString()} ر.س</span>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${C.border}` }}>
+              <span style={{ color:C.textDim, fontSize:13 }}>📋 سعر الخدمة</span>
+              <span style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{Number(pubDetail.price||0).toLocaleString()} ر.س</span>
+            </div>
+            {Array.isArray(pubDetail.products)&&pubDetail.products.length>0&&<div style={{ marginTop:10 }}>
+              <p style={{ color:C.textDim, fontSize:12, fontWeight:600, marginBottom:8 }}>🛍 منتجات مرفقة</p>
+              {pubDetail.products.map((it:any,i:number)=>(
+                <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,.04)', borderRadius:10, padding:'9px 12px', marginBottom:6 }}>
+                  <div><div style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{it.name}</div><div style={{ fontSize:11, color:C.textDim }}>{it.qty} × {Number(it.price||0).toLocaleString()} ر.س</div></div>
+                  <span style={{ color:C.gold, fontWeight:700 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span>
+                </div>
+              ))}
+            </div>}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:12, marginTop:8, borderTop:`2px solid ${C.gold}` }}>
+              <span style={{ color:C.textDim, fontWeight:600 }}>الإجمالي</span>
+              <span style={{ color:C.gold, fontWeight:900, fontSize:22 }}>{Number(pubDetail.total||pubDetail.price||0).toLocaleString()} ر.س</span>
             </div>
             <button type="button" onClick={()=>setPubDetail(null)} style={{ width:'100%', marginTop:16, padding:'12px', borderRadius:12, background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, border:'none', color:C.navy, fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit' }}>إغلاق</button>
           </div>
@@ -1856,8 +1888,12 @@ export default function LamsetAlMalika() {
                             <span>🕐 {b.start_time?.slice(0,5)}</span>
                             {b.duration_min && <span>⏱ {b.duration_min}د</span>}
                           </div>
+                          {Array.isArray(b.products)&&b.products.length>0&&<div style={{ background:'rgba(255,255,255,.04)', borderRadius:8, padding:'6px 10px', marginBottom:8 }}>
+                            <p style={{ color:C.textDim, fontSize:10, fontWeight:600, marginBottom:3 }}>🛍 منتجات مرفقة</p>
+                            {b.products.map((it:any,i:number)=><div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}><span style={{ color:'#fff' }}>{it.name} × {it.qty}</span><span style={{ color:C.gold, fontWeight:600 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span></div>)}
+                          </div>}
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:8, borderTop:`1px solid ${C.border}` }}>
-                            <span style={{ color:C.gold, fontWeight:800, fontSize:15 }}>{Number(b.price||b.total||0).toLocaleString()} ر.س</span>
+                            <span style={{ color:C.gold, fontWeight:800, fontSize:15 }}>{Number(b.total||b.price||0).toLocaleString()} ر.س</span>
                             <button type="button" disabled={actionBusy} onClick={() => askConfirm('إلغاء الحجز','هل أنت متأكد؟',async()=>{setActionBusy(true);const r=await fetch('/api/public-my-bookings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.id,action:'cancel'})});if(r.ok){setToast({msg:'تم إلغاء الحجز',type:'success'});if(authToken)fetchProfile(authToken)}else setToast({msg:'خطأ في الإلغاء',type:'error'});setActionBusy(false)},'إلغاء')}
                               style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:8, background:`${C.error}18`, border:`1px solid ${C.error}33`, color:C.error, cursor:'pointer', fontSize:11, fontWeight:600, fontFamily:'inherit' }}>
                               <Trash2 size={11} /> إزالة
@@ -1946,8 +1982,12 @@ export default function LamsetAlMalika() {
                             <span>📅 {new Date(b.date).toLocaleDateString('ar-SA',{month:'short',day:'numeric'})}</span>
                             <span>🕐 {b.start_time?.slice(0,5)}</span>
                           </div>
+                          {Array.isArray(b.products)&&b.products.length>0&&<div style={{ background:'rgba(255,255,255,.04)', borderRadius:8, padding:'6px 10px', marginBottom:8 }}>
+                            <p style={{ color:C.textDim, fontSize:10, fontWeight:600, marginBottom:3 }}>🛍 منتجات مرفقة</p>
+                            {b.products.map((it:any,i:number)=><div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}><span style={{ color:'#fff' }}>{it.name} × {it.qty}</span><span style={{ color:C.gold, fontWeight:600 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span></div>)}
+                          </div>}
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:8, borderTop:`1px solid ${C.border}` }}>
-                            <span style={{ color:C.gold, fontWeight:800, fontSize:15 }}>{Number(b.price||b.total||0).toLocaleString()} ر.س</span>
+                            <span style={{ color:C.gold, fontWeight:800, fontSize:15 }}>{Number(b.total||b.price||0).toLocaleString()} ر.س</span>
                             <div style={{ display:'flex', gap:6 }}>
                               {b.status === 'completed' && (
                                 <button type="button" onClick={() => { setShowRatingBk(b); setRatingStars(5); setRatingText('') }}
@@ -2269,9 +2309,22 @@ export default function LamsetAlMalika() {
               <span style={{ color:C.textDim, fontSize:12 }}>{e} {l}</span><span style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{v}</span>
             </div>
           ))}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:12, borderTop:`2px solid ${C.gold}`, marginTop:4 }}>
-            <span style={{ color:C.textDim, fontWeight:600, fontSize:13 }}>سعر الخدمة</span>
-            <span style={{ color:C.gold, fontWeight:900, fontSize:20 }}>{Number(cartDetailItem.price||cartDetailItem.total||0).toLocaleString()} ر.س</span>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${C.border}` }}>
+            <span style={{ color:C.textDim, fontSize:12 }}>📋 سعر الخدمة</span>
+            <span style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{Number(cartDetailItem.price||0).toLocaleString()} ر.س</span>
+          </div>
+          {Array.isArray(cartDetailItem.products)&&cartDetailItem.products.length>0&&<div style={{ marginTop:10 }}>
+            <p style={{ color:C.textDim, fontSize:11, fontWeight:600, marginBottom:8 }}>🛍 منتجات مرفقة</p>
+            {cartDetailItem.products.map((it:any,i:number)=>(
+              <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,.04)', borderRadius:10, padding:'8px 10px', marginBottom:6 }}>
+                <div><div style={{ color:'#fff', fontWeight:600, fontSize:12 }}>{it.name}</div><div style={{ fontSize:10, color:C.textDim }}>{it.qty} × {Number(it.price||0).toLocaleString()} ر.س</div></div>
+                <span style={{ color:C.gold, fontWeight:700, fontSize:12 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span>
+              </div>
+            ))}
+          </div>}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:12, marginTop:8, borderTop:`2px solid ${C.gold}` }}>
+            <span style={{ color:C.textDim, fontWeight:600, fontSize:13 }}>الإجمالي</span>
+            <span style={{ color:C.gold, fontWeight:900, fontSize:20 }}>{Number(cartDetailItem.total||cartDetailItem.price||0).toLocaleString()} ر.س</span>
           </div>
           {cartDetailItem.status === 'completed' && (
             <button type="button" onClick={() => { setCartDetailItem(null); setShowRatingBk(cartDetailItem); setRatingStars(5); setRatingText('') }}

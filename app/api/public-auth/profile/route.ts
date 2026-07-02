@@ -38,7 +38,13 @@ export async function GET(req: NextRequest) {
          COALESCE(sl.name, '')             AS branch_name,
          COALESCE(su.name, '')             AS staff_name,
          COALESCE(sf.specialty, '')        AS staff_specialty,
-         sv.duration_min
+         sv.duration_min,
+         COALESCE(
+           (SELECT json_agg(json_build_object('name', p.name_ar, 'qty', ap.qty, 'price', ap.unit_price::text))
+            FROM appointment_products ap JOIN products p ON p.id = ap.product_id
+            WHERE ap.appointment_id = a.id),
+           '[]'::json
+         ) AS products
        FROM appointments a
        JOIN   services sv ON sv.id = a.service_id
        LEFT JOIN salons  sl ON sl.id = a.salon_id

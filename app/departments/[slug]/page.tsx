@@ -967,6 +967,31 @@ export default function DeptPage() {
                 setToast({msg:'تم إرسال طلب الدفع ✓ سيتم التحقق خلال دقائق',type:'success'})
               }
 
+              // Submit cart products: attach to the same booking when paying together with a
+              // service; otherwise (no booking in this checkout) create a standalone product order.
+              const submitCartProducts = async () => {
+                if (cart.length === 0) return
+                const targetAppt = unpaidBks[0]
+                if (targetAppt) {
+                  await fetch('/api/public-attach-appointment-products', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                      appointmentId: targetAppt.id,
+                      items: cart.map(i => ({ productId: i.product.id, qty: i.qty, priceSar: i.product.price })),
+                    })
+                  }).catch(()=>{})
+                } else {
+                  await fetch('/api/public-orders', { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                      items: cart.map(i=>({productId:i.product.id,name:i.product.name_ar,qty:i.qty,priceSar:i.product.price})),
+                      customerName: authUser?.name||'', customerPhone: authUser?.phone||activityPhone||'',
+                      address:'', paymentMethod:'card', totalSar: cartTotal,
+                    })
+                  }).catch(()=>{})
+                }
+                setCart([])
+              }
+
               return (
               <>
                 {/* Tabs */}
@@ -1037,6 +1062,10 @@ export default function DeptPage() {
                                 <div style={{ display:'flex', gap:12, fontSize:11, color:C.textMuted, marginBottom:8 }}>
                                   <span>📅 {b.date}</span><span>🕐 {b.start_time?.slice(0,5)}</span>
                                 </div>
+                                {Array.isArray(b.products)&&b.products.length>0&&<div style={{ background:'rgba(255,255,255,.04)', borderRadius:8, padding:'6px 10px', marginBottom:8 }}>
+                                  <p style={{ color:C.textDim, fontSize:10, fontWeight:600, marginBottom:3 }}>🛍 منتجات مرفقة</p>
+                                  {b.products.map((it:any,i:number)=><div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}><span style={{ color:'#fff' }}>{it.name} × {it.qty}</span><span style={{ color:C.gold, fontWeight:600 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span></div>)}
+                                </div>}
                                 <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8, borderTop:`1px solid ${C.border}` }}>
                                   <span style={{ color:C.gold, fontWeight:800, fontSize:16 }}>{Number(b.total||b.service_price||0).toLocaleString()} ر.س</span>
                                 </div>
@@ -1124,6 +1153,10 @@ export default function DeptPage() {
                                 <div style={{ display:'flex', gap:12, fontSize:11, color:C.textMuted, marginBottom:8 }}>
                                   <span>📅 {b.date}</span><span>🕐 {b.start_time?.slice(0,5)}</span>
                                 </div>
+                                {Array.isArray(b.products)&&b.products.length>0&&<div style={{ background:'rgba(255,255,255,.04)', borderRadius:8, padding:'6px 10px', marginBottom:8 }}>
+                                  <p style={{ color:C.textDim, fontSize:10, fontWeight:600, marginBottom:3 }}>🛍 منتجات مرفقة</p>
+                                  {b.products.map((it:any,i:number)=><div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}><span style={{ color:'#fff' }}>{it.name} × {it.qty}</span><span style={{ color:C.gold, fontWeight:600 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span></div>)}
+                                </div>}
                                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:8, borderTop:`1px solid ${C.border}` }}>
                                   <span style={{ color:C.gold, fontWeight:800, fontSize:16 }}>{Number(b.total||b.service_price||0).toLocaleString()} ر.س</span>
                                   <button type="button" onClick={()=>{setActDetailType('booking');setActDetail(b)}} style={{ display:'flex',alignItems:'center',gap:4,padding:'6px 12px',borderRadius:8,background:'rgba(255,255,255,.06)',border:`1px solid ${C.border}`,color:C.textMuted,cursor:'pointer',fontSize:11,fontFamily:'inherit' }}>👁 التفاصيل</button>
@@ -1214,6 +1247,19 @@ export default function DeptPage() {
                               <span style={{ color:'#fff',fontWeight:600,fontSize:13 }}>{v}</span>
                             </div>
                           ))}
+                          {Array.isArray(actDetail.products)&&actDetail.products.length>0&&<div style={{ marginTop:10 }}>
+                            <p style={{ color:C.textDim,fontSize:11,fontWeight:600,marginBottom:8 }}>🛍 منتجات مرفقة</p>
+                            {actDetail.products.map((it:any,i:number)=>(
+                              <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(255,255,255,.04)',borderRadius:9,padding:'8px 10px',marginBottom:6 }}>
+                                <div><div style={{ color:'#fff',fontWeight:600,fontSize:12 }}>{it.name}</div><div style={{ fontSize:10,color:C.textDim }}>{it.qty} × {Number(it.price||0).toLocaleString()} ر.س</div></div>
+                                <span style={{ color:C.gold,fontWeight:700,fontSize:12 }}>{(Number(it.price||0)*it.qty).toLocaleString()} ر.س</span>
+                              </div>
+                            ))}
+                          </div>}
+                          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:12,marginTop:8,borderTop:`2px solid ${C.gold}` }}>
+                            <span style={{ color:C.textDim,fontWeight:600,fontSize:13 }}>الإجمالي</span>
+                            <span style={{ color:C.gold,fontWeight:900,fontSize:20 }}>{Number(actDetail.total||actDetail.service_price||0).toLocaleString()} ر.س</span>
+                          </div>
                         </>
                       ) : (
                         <>
@@ -1251,6 +1297,7 @@ export default function DeptPage() {
 
                       {/* Summary */}
                       <div style={{ margin:'14px 20px 0', background:'rgba(255,255,255,.04)', borderRadius:12, padding:'10px 14px' }}>
+                        {cart.map(item=><div key={item.product.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textMuted }}>🛍️ {item.product.name_ar} ×{item.qty}</span><span style={{ color:C.gold, fontWeight:600 }}>{(item.product.price*item.qty).toLocaleString()} ر.س</span></div>)}
                         {unpaidBks.map(b=><div key={b.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textMuted }}>✂️ {b.service_name}</span><span style={{ color:C.gold, fontWeight:600 }}>{Number(b.total||b.service_price||0).toLocaleString()} ر.س</span></div>)}
                         {unpaidOrds.map(o=><div key={o.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textMuted }}>📦 طلب #{o.id?.slice(-6).toUpperCase()}</span><span style={{ color:C.gold, fontWeight:600 }}>{Number(o.total||0).toLocaleString()} ر.س</span></div>)}
                         <div style={{ display:'flex', justifyContent:'space-between', paddingTop:10, marginTop:4 }}>
@@ -1331,7 +1378,9 @@ export default function DeptPage() {
                                 fd.append('appointment_ids', JSON.stringify(unpaidBks.map(b=>String(b.id))))
                                 await fetch('/api/public-transfer-receipt', { method:'POST', body:fd }).catch(()=>{})
                               }
+                              await submitCartProducts()
                               doPayAll()
+                              await loadActivity(activityPhone)
                             } catch { doPayAll() }
                             setActPayBusy(false)
                             setActReceiptFile(null); setActReceiptPrev(null)
@@ -1403,7 +1452,9 @@ export default function DeptPage() {
                             onClick={async()=>{
                               setActPayBusy(true)
                               await new Promise(r=>setTimeout(r,1400))
+                              await submitCartProducts()
                               doPayAll()
+                              await loadActivity(activityPhone)
                               setActPayBusy(false)
                               setActCardNum(''); setActCardExp(''); setActCardCvv(''); setActCardHolder('')
                             }}
