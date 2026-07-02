@@ -53,13 +53,24 @@ export async function PUT(req: NextRequest) {
     if (!id || !action) return NextResponse.json({ error: 'id و action مطلوبان' }, { status: 400 })
 
     if (action === 'cancel') {
-      await pool.query(
+      const paid = await pool.query(
+        `SELECT 1 FROM payment_receipts WHERE status = 'verified' AND $1::text = ANY(appointment_ids) LIMIT 1`,
+        [id]
+      )
+      if (paid.rows.length > 0) {
+        return NextResponse.json({ error: 'لا يمكن إلغاء الحجز بعد إتمام الدفع' }, { status: 400 })
+      }
+
+      const result = await pool.query(
         `UPDATE appointments
          SET status = 'cancelled'::appt_status,
              cancellation_reason = 'إلغاء بطلب العميل'
          WHERE id = $1 AND status IN ${ACTIVE}`,
         [id]
       )
+      if (result.rowCount === 0) {
+        return NextResponse.json({ error: 'لا يمكن إلغاء هذا الحجز' }, { status: 400 })
+      }
       return NextResponse.json({ ok: true, message: 'تم إلغاء الحجز' })
     }
 

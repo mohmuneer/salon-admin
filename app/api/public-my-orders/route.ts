@@ -51,10 +51,14 @@ export async function PUT(req: NextRequest) {
     const { id, action } = await req.json()
     if (!id || action !== 'cancel') return NextResponse.json({ error: 'بيانات غير صحيحة' }, { status: 400 })
 
-    await pool.query(
-      `UPDATE orders SET status = 'cancelled' WHERE id = $1 AND status NOT IN ('delivered','cancelled')`,
+    const result = await pool.query(
+      `UPDATE orders SET status = 'cancelled'
+       WHERE id = $1 AND status NOT IN ('delivered','cancelled') AND payment_status != 'paid'`,
       [id]
     )
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: 'لا يمكن إلغاء الطلب بعد إتمام الدفع' }, { status: 400 })
+    }
     return NextResponse.json({ ok: true, message: 'تم إلغاء الطلب' })
   } catch (e: any) {
     console.error('[public-my-orders PUT]', e.message)

@@ -611,9 +611,9 @@ export default function LamsetAlMalika() {
   // Profile modal derived
   const profAllBk  = profile?.bookings || []
   const profAllOr  = profile?.orders   || []
-  const profUnpaidBk = profAllBk.filter((b:any) => ['pending','confirmed','in_progress'].includes(b.status))
+  const profUnpaidBk = profAllBk.filter((b:any) => ['pending','confirmed','in_progress'].includes(b.status) && !paidBkIds.has(String(b.id)))
   const profUnpaidOr = profAllOr.filter((o:any)  => o.payment_status!=='paid' && o.status!=='cancelled')
-  const profPaidBk   = profAllBk.filter((b:any) => b.status==='completed')
+  const profPaidBk   = profAllBk.filter((b:any) => b.status==='completed' || b.status==='no_show' || paidBkIds.has(String(b.id)))
   const profPaidOr   = profAllOr.filter((o:any)  => o.payment_status==='paid')
   const profBkClr  = (s:string) => s==='completed'?C.success:s==='cancelled'||s==='no_show'?C.error:s==='confirmed'?C.blue:C.gold
   const profOrClr  = (s:string) => s==='delivered'?C.success:s==='cancelled'?C.error:s==='confirmed'?C.blue:C.gold
@@ -1526,6 +1526,10 @@ export default function LamsetAlMalika() {
                           </div>
                         ) : (
                           <div style={{ display:'flex', gap:8 }}>
+                            <button type="button" onClick={()=>{setPubDetailT('booking');setPubDetail(b)}}
+                              style={{ flex:1, padding:'9px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit' }}>
+                              👁 التفاصيل
+                            </button>
                             <button type="button" onClick={()=>{setModifyingBk(b);setModBkDate(b.date);setModBkTime(b.start_time?.slice(0,5)||'')}}
                               style={{ flex:1, padding:'9px', borderRadius:10, background:`${C.blue}18`, border:`1px solid ${C.blue}44`, color:C.blue, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit' }}>
                               ✏️ تعديل الموعد
@@ -1570,9 +1574,11 @@ export default function LamsetAlMalika() {
                                 <span style={{ color:C.gold, fontWeight:900, fontSize:18 }}>{Number(o.total||0).toLocaleString()} ر.س</span>
                               </div>
                             </div>
-                            <div style={{ borderTop:`1px solid ${C.border}`, padding:'10px 14px' }}>
+                            <div style={{ borderTop:`1px solid ${C.border}`, padding:'10px 14px', display:'flex', gap:8 }}>
+                              <button type="button" onClick={()=>{setPubDetailT('order');setPubDetail(o)}}
+                                style={{ flex:1, padding:'10px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit' }}>👁 التفاصيل</button>
                               <button type="button" disabled={actionBusy} onClick={()=>askConfirm('إلغاء الطلب','هل أنت متأكد؟',async()=>{setActionBusy(true);const r=await fetch('/api/public-my-orders',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:o.id,action:'cancel'})});const d=await r.json();if(r.ok){setToast({msg:'تم إلغاء الطلب ✓',type:'success'});fetchProfile(authToken!)}else setToast({msg:d.error||'خطأ',type:'error'});setActionBusy(false)},'إلغاء الطلب')}
-                                style={{ width:'100%', padding:'10px', borderRadius:10, background:`${C.error}15`, border:`1px solid ${C.error}44`, color:C.error, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', opacity:actionBusy?.6:1 }}>✕ إلغاء الطلب</button>
+                                style={{ flex:1, padding:'10px', borderRadius:10, background:`${C.error}15`, border:`1px solid ${C.error}44`, color:C.error, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', opacity:actionBusy?.6:1 }}>✕ إلغاء الطلب</button>
                             </div>
                           </div>
                         )
@@ -1662,7 +1668,8 @@ export default function LamsetAlMalika() {
               <div style={{ color:'#fff', fontWeight:800, fontSize:16, marginBottom:3 }}>{pubDetail.service_name}</div>
               {pubDetail.staff_name&&<div style={{ color:C.textDim, fontSize:12 }}>👤 {pubDetail.staff_name}</div>}
             </div>
-            {[['📅','التاريخ',new Date(pubDetail.date).toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'})],
+            {[['📋','الحالة',profBkLbl[pubDetail.status]||pubDetail.status],
+              ['📅','التاريخ',new Date(pubDetail.date).toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'})],
               ['🕐','الوقت',`${pubDetail.start_time?.slice(0,5)||''}${pubDetail.end_time?` – ${pubDetail.end_time.slice(0,5)}`:''}`],
               ['🏢','الفرع',pubDetail.branch_name||'—'],
               ['⏱','المدة',pubDetail.duration_min?`${pubDetail.duration_min} دقيقة`:'—'],
@@ -1682,7 +1689,8 @@ export default function LamsetAlMalika() {
               <div><h3 style={{ color:'#fff', fontWeight:800, fontSize:17, margin:0 }}>تفاصيل الطلب</h3><p style={{ color:C.textDim, fontSize:11, margin:'4px 0 0' }}>#{String(pubDetail.id).slice(0,10).toUpperCase()}</p></div>
               <button type="button" onClick={()=>setPubDetail(null)} style={{ background:'rgba(255,255,255,.08)', border:'none', borderRadius:'50%', width:30, height:30, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:18 }}>×</button>
             </div>
-            {[['📅','التاريخ',new Date(pubDetail.created_at).toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'})],
+            {[['📋','الحالة',profOrLbl[pubDetail.status]||pubDetail.status],
+              ['📅','التاريخ',new Date(pubDetail.created_at).toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'})],
               ['🏢','الفرع',pubDetail.branch_name||'—'],
               ['💳','الدفع',pubDetail.payment_method==='bank_transfer'?'تحويل بنكي':pubDetail.payment_method==='direct_debit'?'خصم من حساب':'كاش'],
             ].map(([e,l,v])=><div key={String(l)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${C.border}` }}><span style={{ color:C.textDim, fontSize:13 }}>{e} {l}</span><span style={{ color:'#fff', fontWeight:600, fontSize:13 }}>{v}</span></div>)}
