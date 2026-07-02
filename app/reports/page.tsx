@@ -4,9 +4,10 @@ import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { reportTypes, ReportColumn } from '@/lib/report-config'
 import ReportColumnToggle from '@/components/ReportColumnToggle'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { Search, Printer, FileSpreadsheet, Download, BarChart3, Table2 } from 'lucide-react'
 import ChartWrapper from '@/components/ChartWrapper'
+import { useSalonSettings } from '@/lib/useSalonSettings'
 
 const COLORS = ['var(--gold)','var(--gold-light)','#1A1A2E','#6B7280','#10B981']
 const STATUSES = ['all','pending','confirmed','in_progress','completed','cancelled','no_show']
@@ -50,6 +51,8 @@ function getStatusClass(val: any, col: ReportColumn) {
 export default function ReportsPage() {
   const { lang } = useLang()
   const tr = t[lang]
+  const { settings } = useSalonSettings()
+  const realSalonName = (lang === 'ar' ? settings.name : settings.name_en) || settings.name
 
   const [activeTab, setActiveTab] = useState('')
   const [data, setData] = useState<any>(null)
@@ -133,8 +136,8 @@ export default function ReportsPage() {
         type: reportDef?.labelAr || activeTab,
         columns: columns.filter(c => visibleColumns.includes(c.key)),
         rows: filteredRows,
-        salonName: tr.salon,
-        logo: '',
+        salonName: realSalonName,
+        logo: settings.logo_url || '',
       }),
     })
     const html = await res.text()
@@ -156,7 +159,7 @@ export default function ReportsPage() {
         type: activeTab,
         columns: columns.filter(c => visibleColumns.includes(c.key)),
         rows: filteredRows,
-        salonName: tr.salon,
+        salonName: realSalonName,
       }),
     })
     const blob = await res.blob()
@@ -276,6 +279,49 @@ export default function ReportsPage() {
 
   const visibleCols = columns.filter(c => visibleColumns.includes(c.key))
 
+  // ─── Chart data prep (generalized across all report types) ──────────────
+  const chartCategoryCol = columns.find(c => c.type !== 'currency' && c.type !== 'number' && c.type !== 'date' && !isStatusColumn(c))
+  const chartValueCol =
+    columns.find(c => /total|revenue|count|stock_value/.test(c.key) && (c.type === 'currency' || c.type === 'number')) ||
+    columns.find(c => c.type === 'currency') ||
+    columns.find(c => c.type === 'number')
+  const chartStatusCol = columns.find(c => isStatusColumn(c))
+
+  const genericChartData = (chartCategoryCol && chartValueCol)
+    ? filteredRows
+        .map((r: any) => ({ name: String(r[chartCategoryCol.key] ?? '—'), value: Number(r[chartValueCol.key]) || 0 }))
+        .sort((a: any, b: any) => b.value - a.value)
+        .slice(0, 10)
+    : []
+
+  const statusChartData = chartStatusCol
+    ? (() => {
+        const counts = new Map<string, { label: string; value: number }>()
+        filteredRows.forEach((r: any) => {
+          const raw = r[chartStatusCol.key]
+          const key = String(raw)
+          const label = formatValue(raw, chartStatusCol, lang)
+          const entry = counts.get(key) || { label, value: 0 }
+          entry.value += 1
+          counts.set(key, entry)
+        })
+        return Array.from(counts.values()).map(e => ({ name: e.label, value: e.value }))
+      })()
+    : []
+
+  const appointmentsChartData = activeTab === 'appointments'
+    ? Object.values(
+        filteredRows.reduce((acc: Record<string, any>, r: any) => {
+          const d = r.date
+          if (!acc[d]) acc[d] = { date: d, total: 0 }
+          acc[d].total += Number(r.total) || 0
+          return acc
+        }, {})
+      ).sort((a: any, b: any) => a.date.localeCompare(b.date)).slice(-14)
+    : []
+
+  const hasSecondChart = activeTab === 'financial' ? false : activeTab === 'appointments' ? true : statusChartData.length > 0
+
   return (
     <div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
@@ -290,7 +336,7 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="card" style={{ marginBottom:20 }}>
+      <div className="card" style={{ marginBottom:20, overflow:'visible' }}>
         <div style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           {activeTab === 'appointments' && (
             <>
@@ -343,101 +389,174 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="card">
-        {loading ? (
-          <div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.loading}</div>
-        ) : filteredRows.length === 0 ? (
-          <div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.noData}</div>
-        ) : (
-          <div style={{ overflowX:'auto' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width:40 }}>#</th>
-                  {visibleCols.map(col => (
-                    <th key={col.key}>{lang === 'ar' ? col.labelAr : col.labelEn}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row: any, i: number) => (
-                  <tr key={row.id || i}>
-                    <td style={{ color:'#9CA3AF', fontSize:12 }}>{i+1}</td>
-                    {visibleCols.map(col => {
-                      const val = row[col.key]
-                      return (
-                        <td key={col.key} className={getStatusClass(val, col) || undefined}
-                          style={{
-                            fontWeight: col.type === 'currency' ? 600 : undefined,
-                            color: col.type === 'currency' ? 'var(--gold)' : undefined,
-                            maxWidth: col.type === 'text' ? 250 : undefined,
-                            overflow: 'hidden', textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {isStatusColumn(col) ? (
-                            <span className={getStatusClass(val, col)}>
-                              {formatValue(val, col, lang)}
-                            </span>
-                          ) : (
-                            formatValue(val, col, lang)
-                          )}
-                        </td>
-                      )
-                    })}
+      {viewMode === 'table' && (
+        <div className="card">
+          {loading ? (
+            <div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.loading}</div>
+          ) : filteredRows.length === 0 ? (
+            <div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.noData}</div>
+          ) : (
+            <div style={{ overflowX:'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width:40 }}>#</th>
+                    {visibleCols.map(col => (
+                      <th key={col.key}>{lang === 'ar' ? col.labelAr : col.labelEn}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {viewMode === 'chart' && activeTab === 'appointments' && filteredRows.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginTop:20 }}>
-          <div className="card">
-            <div className="card-header">
-              <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
-                {lang==='ar'?'الإيرادات حسب التاريخ':'Revenue by Date'}
-              </h2>
+                </thead>
+                <tbody>
+                  {filteredRows.map((row: any, i: number) => (
+                    <tr key={row.id || i}>
+                      <td style={{ color:'#9CA3AF', fontSize:12 }}>{i+1}</td>
+                      {visibleCols.map(col => {
+                        const val = row[col.key]
+                        return (
+                          <td key={col.key} className={getStatusClass(val, col) || undefined}
+                            style={{
+                              fontWeight: col.type === 'currency' ? 600 : undefined,
+                              color: col.type === 'currency' ? 'var(--gold)' : undefined,
+                              maxWidth: col.type === 'text' ? 250 : undefined,
+                              overflow: 'hidden', textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {isStatusColumn(col) ? (
+                              <span className={getStatusClass(val, col)}>
+                                {formatValue(val, col, lang)}
+                              </span>
+                            ) : (
+                              formatValue(val, col, lang)
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="card-body">
-              <ChartWrapper height={240}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={filteredRows.slice(-14)}>
-                    <XAxis dataKey="date" tick={{ fontSize:11 }} tickFormatter={(v: string) => v?.slice(5) || ''} />
-                    <YAxis tick={{ fontSize:11 }} />
-                    <Tooltip formatter={(v: any) => `${Number(v).toLocaleString()} ${tr.sar}`} />
-                    <Bar dataKey="total" fill="var(--gold)" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartWrapper>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-header">
-              <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
-                {lang==='ar'?'توزيع المواعيد حسب الحالة':'Status Distribution'}
-              </h2>
-            </div>
-            <div className="card-body">
-              <ChartWrapper height={240}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                  <Pie data={(() => {
-                    const counts: Record<string,number> = {}
-                    filteredRows.forEach((r: any) => { counts[r.status] = (counts[r.status] || 0) + 1 })
-                    return Object.entries(counts).map(([k,v]) => ({ name: tr[k as keyof typeof tr] || k, value: v }))
-                  })()} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                    {COLORS.map((c, i) => <Cell key={i} fill={c} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-              </ChartWrapper>
-            </div>
-          </div>
+          )}
         </div>
+      )}
+
+      {viewMode === 'chart' && (
+        filteredRows.length === 0 ? (
+          <div className="card"><div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.noData}</div></div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns: hasSecondChart ? '1fr 1fr' : '1fr', gap:20 }}>
+            {activeTab === 'financial' ? (
+              <div className="card" style={{ gridColumn: '1/-1' }}>
+                <div className="card-header">
+                  <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
+                    {lang==='ar'?'الإيرادات والتكاليف والربح':'Revenue, Costs & Profit'}
+                  </h2>
+                </div>
+                <div className="card-body">
+                  <ChartWrapper height={300}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={filteredRows}>
+                        <XAxis dataKey="date" tick={{ fontSize:11 }} tickFormatter={(v: string) => v?.slice(5) || ''} />
+                        <YAxis tick={{ fontSize:11 }} />
+                        <Tooltip formatter={(v: any) => `${Number(v).toLocaleString()} ${tr.sar}`} />
+                        <Legend />
+                        <Line type="monotone" dataKey="revenue" name={lang==='ar'?'الإيرادات':'Revenue'} stroke="var(--gold)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="costs" name={lang==='ar'?'التكاليف':'Costs'} stroke="#EF4444" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="profit" name={lang==='ar'?'الربح':'Profit'} stroke="#10B981" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartWrapper>
+                </div>
+              </div>
+            ) : activeTab === 'appointments' ? (
+              <>
+                <div className="card">
+                  <div className="card-header">
+                    <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
+                      {lang==='ar'?'الإيرادات حسب التاريخ':'Revenue by Date'}
+                    </h2>
+                  </div>
+                  <div className="card-body">
+                    <ChartWrapper height={280}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={appointmentsChartData}>
+                          <XAxis dataKey="date" tick={{ fontSize:11 }} tickFormatter={(v: string) => v?.slice(5) || ''} />
+                          <YAxis tick={{ fontSize:11 }} />
+                          <Tooltip formatter={(v: any) => `${Number(v).toLocaleString()} ${tr.sar}`} />
+                          <Bar dataKey="total" fill="var(--gold)" radius={[6,6,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartWrapper>
+                  </div>
+                </div>
+                <div className="card">
+                  <div className="card-header">
+                    <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
+                      {lang==='ar'?'توزيع المواعيد حسب الحالة':'Status Distribution'}
+                    </h2>
+                  </div>
+                  <div className="card-body">
+                    <ChartWrapper height={280}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={statusChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+                            {statusChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartWrapper>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="card">
+                  <div className="card-header">
+                    <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
+                      {chartValueCol ? (lang==='ar'?chartValueCol.labelAr:chartValueCol.labelEn) : ''} — {lang==='ar'?'الأعلى':'Top'} 10
+                    </h2>
+                  </div>
+                  <div className="card-body">
+                    <ChartWrapper height={280}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={genericChartData} layout="vertical" margin={{ left:0, right:0 }}>
+                          <XAxis type="number" tick={{ fontSize:11 }} />
+                          <YAxis type="category" dataKey="name" tick={{ fontSize:11 }} width={120} />
+                          <Tooltip formatter={(v: any) => chartValueCol?.type === 'currency' ? `${Number(v).toLocaleString()} ${tr.sar}` : Number(v).toLocaleString()} />
+                          <Bar dataKey="value" fill="var(--gold)" radius={[0,6,6,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartWrapper>
+                  </div>
+                </div>
+                {statusChartData.length > 0 && (
+                  <div className="card">
+                    <div className="card-header">
+                      <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>
+                        {lang==='ar'?'التوزيع':'Distribution'}
+                      </h2>
+                    </div>
+                    <div className="card-body">
+                      <ChartWrapper height={280}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={statusChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+                              {statusChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </ChartWrapper>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )
       )}
 
       <iframe ref={printFrameRef} style={{ display:'none' }} />

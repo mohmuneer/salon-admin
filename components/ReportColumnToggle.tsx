@@ -50,7 +50,7 @@ export default function ReportColumnToggle({
       {open && (
         <div
           style={{
-            position: 'absolute', top: '100%', left: 0, marginTop: 4,
+            position: 'absolute', top: '100%', insetInlineStart: 0, marginTop: 4,
             background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10,
             boxShadow: '0 4px 20px rgba(0,0,0,0.1)', zIndex: 50,
             minWidth: 220, padding: 8,
