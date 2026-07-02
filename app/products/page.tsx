@@ -12,6 +12,7 @@ export default function ProductsPage() {
   const tr = t[lang]
   const [products, setProducts] = useState<any[]>([])
   const [departments, setDepartments] = useState<any[]>([])
+  const [groups, setGroups] = useState<any[]>([])
   const [currencies, setCurrencies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -22,7 +23,7 @@ export default function ProductsPage() {
   const [departmentFilter, setDepartmentFilter] = useState('')
   const [groupByDept, setGroupByDept] = useState(false)
   const [defaultCurrency, setDefaultCurrency] = useState<any>(null)
-  const [form, setForm] = useState({ name_ar:'', brand:'', category:'', price:0, cost:0, stock_qty:0, min_stock_alert:5, sold_in_store:true, used_in_sessions:false, image_url:'', department_id:'', currency_id:'', display_on_public:true, is_featured:false })
+  const [form, setForm] = useState({ name_ar:'', brand:'', category:'', price:0, cost:0, stock_qty:0, min_stock_alert:5, sold_in_store:true, used_in_sessions:false, image_url:'', department_id:'', group_id:'', currency_id:'', display_on_public:true, is_featured:false })
   const [productGallery, setProductGallery] = useState<any[]>([])
   const [editingGallery, setEditingGallery] = useState<any[]>([])
 
@@ -31,10 +32,12 @@ export default function ProductsPage() {
     Promise.all([
       fetch('/api/products').then(r => r.json()),
       fetch('/api/departments').then(r => r.json()).catch(() => []),
+      fetch('/api/product-groups').then(r => r.json()).catch(() => []),
       fetch('/api/currencies').then(r => r.json()).catch(() => []),
-    ]).then(([prods, depts, currs]) => {
+    ]).then(([prods, depts, grps, currs]) => {
       setProducts(Array.isArray(prods) ? prods : [])
       setDepartments(Array.isArray(depts) ? depts : [])
+      setGroups(Array.isArray(grps) ? grps : [])
       setCurrencies(Array.isArray(currs) ? currs : [])
       const curArr = Array.isArray(currs) ? currs : []
       const def = curArr.find((c: any) => c.is_default)
@@ -126,6 +129,16 @@ export default function ProductsPage() {
                   <option value="">{lang==='ar'?'اختر القسم':'Select Department'}</option>
                   {departments.filter((d:any) => d.is_active).map((d:any) => (
                     <option key={d.id} value={d.id}>{lang==='ar'?d.name_ar:(d.name_en||d.name_ar)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:13, color:'#6B7280', display:'block', marginBottom:6 }}>{lang==='ar'?'المجموعة':'Group'}</label>
+                <select className="input-field" value={form.group_id}
+                  onChange={e => setForm({ ...form, group_id: e.target.value })}>
+                  <option value="">{lang==='ar'?'بدون مجموعة':'No Group'}</option>
+                  {groups.filter((g:any) => g.is_active).map((g:any) => (
+                    <option key={g.id} value={g.id}>{lang==='ar'?g.name_ar:(g.name_en||g.name_ar)}</option>
                   ))}
                 </select>
               </div>
@@ -341,7 +354,7 @@ export default function ProductsPage() {
                             </>
                           ) : (
                             <>
-                              <button className="btn btn-icon" onClick={() => { setEditingId(p.id); setEditForm({ id:p.id, name_ar:p.name_ar, brand:p.brand||'', category:p.category||'', price:p.price, cost:p.cost, stock_qty:p.stock_qty, min_stock_alert:p.min_stock_alert, sold_in_store:p.sold_in_store, used_in_sessions:p.used_in_sessions, image_url:p.image_url||'', is_active:p.is_active, department_id:p.department_id||'', currency_id:p.currency_id||(defaultCurrency?.id||''), display_on_public:p.display_on_public !== false, is_featured:p.is_featured === true }); loadProductImages(p.id, setEditingGallery) }} title={lang==='ar'?'تعديل':'Edit'}><Pencil size={16} /></button>
+                              <button className="btn btn-icon" onClick={() => { setEditingId(p.id); setEditForm({ id:p.id, name_ar:p.name_ar, brand:p.brand||'', category:p.category||'', price:p.price, cost:p.cost, stock_qty:p.stock_qty, min_stock_alert:p.min_stock_alert, sold_in_store:p.sold_in_store, used_in_sessions:p.used_in_sessions, image_url:p.image_url||'', is_active:p.is_active, department_id:p.department_id||'', group_id:p.group_id||'', currency_id:p.currency_id||(defaultCurrency?.id||''), display_on_public:p.display_on_public !== false, is_featured:p.is_featured === true }); loadProductImages(p.id, setEditingGallery) }} title={lang==='ar'?'تعديل':'Edit'}><Pencil size={16} /></button>
                               <button className="btn btn-icon-danger" onClick={() => deleteItem(p.id)} title={lang==='ar'?'حذف':'Delete'}><Trash2 size={16} /></button>
                             </>
                           )}
@@ -439,7 +452,7 @@ export default function ProductsPage() {
                                 </>
                               ) : (
                                 <>
-                              <button className="btn btn-icon" onClick={() => { setEditingId(p.id); setEditForm({ id:p.id, name_ar:p.name_ar, brand:p.brand||'', category:p.category||'', price:p.price, cost:p.cost, stock_qty:p.stock_qty, min_stock_alert:p.min_stock_alert, sold_in_store:p.sold_in_store, used_in_sessions:p.used_in_sessions, image_url:p.image_url||'', is_active:p.is_active, department_id:p.department_id||'', currency_id:p.currency_id||(defaultCurrency?.id||''), display_on_public:p.display_on_public !== false, is_featured:p.is_featured === true }); loadProductImages(p.id, setEditingGallery) }} title={lang==='ar'?'تعديل':'Edit'}><Pencil size={16} /></button>
+                              <button className="btn btn-icon" onClick={() => { setEditingId(p.id); setEditForm({ id:p.id, name_ar:p.name_ar, brand:p.brand||'', category:p.category||'', price:p.price, cost:p.cost, stock_qty:p.stock_qty, min_stock_alert:p.min_stock_alert, sold_in_store:p.sold_in_store, used_in_sessions:p.used_in_sessions, image_url:p.image_url||'', is_active:p.is_active, department_id:p.department_id||'', group_id:p.group_id||'', currency_id:p.currency_id||(defaultCurrency?.id||''), display_on_public:p.display_on_public !== false, is_featured:p.is_featured === true }); loadProductImages(p.id, setEditingGallery) }} title={lang==='ar'?'تعديل':'Edit'}><Pencil size={16} /></button>
                                   <button className="btn btn-icon-danger" onClick={() => deleteItem(p.id)} title={lang==='ar'?'حذف':'Delete'}><Trash2 size={16} /></button>
                                 </>
                               )}
