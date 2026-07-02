@@ -1,0 +1,30 @@
+{
+  "name": "صالون تاتش أوف مالاس",
+  "name_en": "Touch of Mallas Salon",
+  "logo_url": "/api/uploads/1781694835395-y8v3mh.png",
+  "address": "جدة، حي الروضة",
+  "city": "جدة",
+  "phone": "+966553929565",
+  "email": "admin@glamour.sa",
+  "opening_time": "08:00",
+  "closing_time": "23:00",
+  "theme": "emerald",
+  "whatsapp_number": "00966553929565",
+  "whatsapp_message": "مرحباً، أرغب بالاستفسار عن خدمات صالون تاتش أوف مالاس",
+  "seo_title": "صالون تاتش أوف مالاس - صالون تجميل احترافي في جدة",
+  "seo_description": "صالون تاتش أوف مالاس يقدم أرقى خدمات التجميل والعناية بالشعر والبشرة في جدة. احجزي موعدك الآن!",
+  "seo_keywords": "صالون تجميل, صالون تاتش أوف مالاس, جدة, عناية بالشعر, مانيكير, مكياج, بشرة",
+  "seo_image": "",
+  "instagram": "",
+  "twitter": "",
+  "snapchat": "",
+  "social_links": [
+    {
+      "url": "https://facebook.com/https://www.facebook.com/mohmd.fac77",
+      "handle": "https://www.facebook.com/mohmd.fac77",
+      "platform": "facebook"
+    }
+  ],
+  "email_user": "mohammedmuneer5577@gmail.com",
+  "email_pass": "mtaaaqqlbqzaynlc"
+}
