@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Calendar, Users, Scissors,
   ShoppingBag, BarChart2, ShoppingCart, Settings, LogOut, Sparkles,
   Building2, UserCog, X, Package, Globe, Layers,
-  ChevronLeft, ChevronRight, DollarSign, CreditCard, Boxes, Warehouse, Truck,
+  ChevronLeft, ChevronRight, DollarSign, CreditCard, Boxes, Warehouse, Truck, CalendarCheck,
 } from 'lucide-react'
 
 const navItems = [
@@ -24,6 +24,7 @@ const navItems = [
   { key: 'warehouseGroups', href: '/warehouse-groups', icon: Layers },
   { key: 'suppliers',     href: '/suppliers',      icon: Truck },
   { key: 'supplierGroups', href: '/supplier-groups', icon: Layers },
+  { key: 'supplierVisits', href: '/supplier-visits', icon: CalendarCheck },
   { key: 'inventory',     href: '/inventory',      icon: Package },
   { key: 'orders',        href: '/orders',         icon: ShoppingCart },
   { key: 'payments',     href: '/payments',       icon: CreditCard },

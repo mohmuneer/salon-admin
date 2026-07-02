@@ -42,7 +42,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const isLogin = pathname === '/login'
   const isActivate = pathname === '/activate'
   const isPublic = pathname === '/public' || pathname.startsWith('/public/') || pathname.startsWith('/departments/')
-  const isFullPage = isActivate || isLogin || isReceipt || isPublic
+  const isSupplierPortal = pathname.startsWith('/supplier-portal')
+  const isFullPage = isActivate || isLogin || isReceipt || isPublic || isSupplierPortal
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarLoaded, setSidebarLoaded] = useState(false)

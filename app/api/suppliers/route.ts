@@ -1,11 +1,12 @@
 import { NextResponse, NextRequest } from 'next/server'
 import pool from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
 export async function GET() {
   try {
     const result = await pool.query(`
       SELECT s.id, s.name_ar, s.name_en, s.phone, s.email, s.address, s.supplier_group_id,
-             s.is_active, s.created_at,
+             s.is_active, s.created_at, (s.password_hash IS NOT NULL) AS has_login,
              sg.name_ar AS group_name_ar, sg.name_en AS group_name_en,
              COALESCE(
                (SELECT json_agg(json_build_object('id', p.id, 'name_ar', p.name_ar) ORDER BY p.name_ar)
@@ -25,13 +26,14 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { name_ar, name_en, phone, email, address, supplier_group_id, product_ids } = await req.json()
+  const { name_ar, name_en, phone, email, address, supplier_group_id, product_ids, password } = await req.json()
+  const passwordHash = password ? await bcrypt.hash(password, 10) : null
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
     const inserted = await client.query(
-      `INSERT INTO suppliers (name_ar, name_en, phone, email, address, supplier_group_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-      [name_ar, name_en || null, phone || null, email || null, address || null, supplier_group_id || null]
+      `INSERT INTO suppliers (name_ar, name_en, phone, email, address, supplier_group_id, password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [name_ar, name_en || null, phone || null, email || null, address || null, supplier_group_id || null, passwordHash]
     )
     const supplierId = inserted.rows[0].id
     for (const productId of Array.isArray(product_ids) ? product_ids : []) {
@@ -52,14 +54,22 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const { id, name_ar, name_en, phone, email, address, supplier_group_id, is_active, product_ids } = await req.json()
+  const { id, name_ar, name_en, phone, email, address, supplier_group_id, is_active, product_ids, password } = await req.json()
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await client.query(
-      `UPDATE suppliers SET name_ar=$1, name_en=$2, phone=$3, email=$4, address=$5, supplier_group_id=$6, is_active=$7 WHERE id=$8`,
-      [name_ar, name_en || null, phone || null, email || null, address || null, supplier_group_id || null, is_active, id]
-    )
+    if (password) {
+      const passwordHash = await bcrypt.hash(password, 10)
+      await client.query(
+        `UPDATE suppliers SET name_ar=$1, name_en=$2, phone=$3, email=$4, address=$5, supplier_group_id=$6, is_active=$7, password_hash=$8 WHERE id=$9`,
+        [name_ar, name_en || null, phone || null, email || null, address || null, supplier_group_id || null, is_active, passwordHash, id]
+      )
+    } else {
+      await client.query(
+        `UPDATE suppliers SET name_ar=$1, name_en=$2, phone=$3, email=$4, address=$5, supplier_group_id=$6, is_active=$7 WHERE id=$8`,
+        [name_ar, name_en || null, phone || null, email || null, address || null, supplier_group_id || null, is_active, id]
+      )
+    }
     await client.query(`DELETE FROM supplier_products WHERE supplier_id=$1`, [id])
     for (const productId of Array.isArray(product_ids) ? product_ids : []) {
       await client.query(

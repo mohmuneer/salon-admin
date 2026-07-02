@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
-  Truck, Phone, Mail, Package, Pencil, Trash2, X, Check, CalendarDays,
+  Truck, Phone, Mail, Package, Pencil, Trash2, X, Check, CalendarDays, KeyRound,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 
-const EMPTY_FORM = { name_ar: '', name_en: '', phone: '', email: '', address: '', supplier_group_id: '', product_ids: [] as string[] }
+const EMPTY_FORM = { name_ar: '', name_en: '', phone: '', email: '', address: '', supplier_group_id: '', product_ids: [] as string[], password: '' }
 
 function ProductMultiSelect({ products, selected, onChange, isAr }: {
   products: any[]; selected: string[]; onChange: (ids: string[]) => void; isAr: boolean
@@ -157,6 +157,14 @@ export default function SuppliersPage() {
                   </select>
                 </div>
                 <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                    <KeyRound size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
+                    {isAr ? 'كلمة مرور بوابة المورد' : 'Supplier Portal Password'}
+                  </label>
+                  <input type="password" className="input-field" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+                    placeholder={isAr ? 'لتفعيل تسجيل الدخول (اختياري)' : 'To enable portal login (optional)'} />
+                </div>
+                <div>
                   <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'المنتجات الموردة' : 'Supplied Products'}</label>
                   <ProductMultiSelect products={products} selected={form.product_ids} onChange={ids => setForm({ ...form, product_ids: ids })} isAr={isAr} />
                 </div>
@@ -221,6 +229,14 @@ export default function SuppliersPage() {
                           ))}
                         </select>
                       </div>
+                      <div>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                          <KeyRound size={12} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
+                          {isAr ? 'كلمة مرور بوابة المورد' : 'Supplier Portal Password'}
+                        </label>
+                        <input type="password" className="input-field" value={editForm.password || ''} onChange={e => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
+                          placeholder={isAr ? 'اتركه فارغاً لعدم التغيير' : 'Leave blank to keep unchanged'} />
+                      </div>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'المنتجات الموردة' : 'Supplied Products'}</label>
                         <ProductMultiSelect products={products} selected={editForm.product_ids || []} onChange={ids => setEditForm((f: any) => ({ ...f, product_ids: ids }))} isAr={isAr} />
@@ -253,6 +269,11 @@ export default function SuppliersPage() {
                       {s.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={11} />{s.phone}</div>}
                       {s.email && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Mail size={11} />{s.email}</div>}
                       {!s.phone && !s.email && '—'}
+                      {s.has_login && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#10B981', marginTop: 2 }}>
+                          <KeyRound size={11} />{isAr ? 'له دخول للبوابة' : 'Portal access'}
+                        </div>
+                      )}
                     </td>
                     <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                       {(isAr ? s.group_name_ar : (s.group_name_en || s.group_name_ar)) || '—'}
@@ -276,7 +297,7 @@ export default function SuppliersPage() {
                             setEditForm({
                               id: s.id, name_ar: s.name_ar, name_en: s.name_en || '', phone: s.phone || '', email: s.email || '',
                               address: s.address || '', supplier_group_id: s.supplier_group_id || '', is_active: s.is_active,
-                              product_ids: (s.products || []).map((p: any) => p.id),
+                              product_ids: (s.products || []).map((p: any) => p.id), password: '',
                             })
                           }}>
                           <Pencil size={15} color="var(--primary)" />
