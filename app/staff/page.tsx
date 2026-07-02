@@ -4,7 +4,7 @@ import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
   Star, UserCheck, UserX, Pencil, Trash2, X, Check,
-  Phone, Mail, Scissors, Users, Building2, Layers,
+  Phone, Mail, Scissors, Users, Building2, Layers, Search,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 import Link from 'next/link'
@@ -20,6 +20,11 @@ export default function StaffPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [branchFilter, setBranchFilter] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('')
+  const [genderServedFilter, setGenderServedFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
   useEffect(() => {
     fetch('/api/branches').then(r => { if (!r.ok) return []; return r.json() }).then(setBranches).catch(() => setBranches([]))
@@ -68,29 +73,90 @@ export default function StaffPage() {
     return isAr ? 'الكل' : 'Both'
   }
 
+  const filteredStaff = staff.filter((s: any) => {
+    if (branchFilter && s.salon_id !== branchFilter) return false
+    if (departmentFilter && s.department_id !== departmentFilter) return false
+    if (genderServedFilter && s.gender_served !== genderServedFilter) return false
+    if (statusFilter === 'active' && !s.is_active) return false
+    if (statusFilter === 'inactive' && s.is_active) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (
+        !(s.name || '').toLowerCase().includes(q) &&
+        !(s.phone || '').includes(q) &&
+        !(s.email || '').toLowerCase().includes(q) &&
+        !(s.specialty || '').toLowerCase().includes(q)
+      ) return false
+    }
+    return true
+  })
+
   return (
     <div className="anim-fade-in">
       <div className="page-header">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{tr.staff}</h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-            {staff.length} {isAr ? 'موظف' : 'employees'}
+            {filteredStaff.length === staff.length
+              ? `${staff.length} ${isAr ? 'موظف' : 'employees'}`
+              : `${filteredStaff.length} / ${staff.length} ${isAr ? 'موظف' : 'employees'}`}
           </p>
         </div>
         <AddButton onClick={() => window.location.href='/staff/add'} label={isAr?'إضافة موظف':'Add Employee'} tooltip={isAr?'إضافة موظف جديد':'Add new employee'} />
       </div>
 
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="filter-bar" style={{ padding: '14px 18px' }}>
+          <div style={{ position:'relative', flex:1, minWidth:200 }}>
+            <Search size={15} style={{ position:'absolute', top:'50%', transform:'translateY(-50%)', insetInlineStart:12, color:'var(--text-muted)' }} />
+            <input className="input-field" style={{ paddingInlineStart:36 }}
+              placeholder={tr.search} value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <select className="input-field" style={{ width:160 }} value={branchFilter} onChange={e => { setBranchFilter(e.target.value); setDepartmentFilter('') }}>
+            <option value="">{isAr ? 'كل الفروع' : 'All Branches'}</option>
+            {branches.map((b: any) => (
+              <option key={b.id} value={b.id}>{isAr ? b.name : (b.name_en || b.name)}</option>
+            ))}
+          </select>
+          <select className="input-field" style={{ width:160 }} value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)}>
+            <option value="">{isAr ? 'كل الأقسام' : 'All Departments'}</option>
+            {departments
+              .filter((d: any) => !branchFilter || d.salon_id === branchFilter)
+              .map((d: any) => (
+                <option key={d.id} value={d.id}>{isAr ? d.name_ar : (d.name_en || d.name_ar)}</option>
+              ))}
+          </select>
+          <select className="input-field" style={{ width:140 }} value={genderServedFilter} onChange={e => setGenderServedFilter(e.target.value)}>
+            <option value="">{isAr ? 'الكل (يخدم)' : 'All (Serves)'}</option>
+            <option value="both">{isAr ? 'الكل' : 'Both'}</option>
+            <option value="ladies">{isAr ? 'نساء' : 'Ladies'}</option>
+            <option value="gents">{isAr ? 'رجال' : 'Gents'}</option>
+          </select>
+          <div style={{ display:'flex', gap:6 }}>
+            {(['all','active','inactive'] as const).map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={statusFilter === s ? 'btn btn-tab active' : 'btn btn-tab'}
+              >
+                {s === 'all' ? (isAr?'الكل':'All') : s === 'active' ? (isAr?'نشط':'Active') : (isAr?'غير نشط':'Inactive')}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap: 18 }}>
         {loading ? (
           <div style={{ color:'var(--text-muted)', gridColumn:'1/-1', textAlign:'center', padding: 60 }}>{tr.loading}</div>
-        ) : staff.length === 0 ? (
+        ) : filteredStaff.length === 0 ? (
           <div style={{
             gridColumn: '1/-1', textAlign: 'center', padding: 60,
             color: 'var(--text-muted)', fontSize: 14,
           }}>
-            {isAr ? 'لا يوجد موظفون بعد' : 'No employees yet'}
+            {staff.length === 0 ? (isAr ? 'لا يوجد موظفون بعد' : 'No employees yet') : tr.noData}
           </div>
-        ) : staff.map((s: any) => (
+        ) : filteredStaff.map((s: any) => (
           <div key={s.id} className="premium-stat" style={{ opacity: s.is_active ? 1 : 0.55 }}>
             <div className="stat-glow" />
             <div style={{ display:'flex', alignItems:'center', gap: 14, marginBottom: 16 }}>
@@ -167,11 +233,7 @@ export default function StaffPage() {
                 <span style={{ fontWeight: 700, color:'var(--text)' }}>{Number(s.rating || 0).toFixed(1)}</span>
                 <span style={{ color:'var(--text-muted)', fontSize: 12 }}>({s.reviews_count || 0})</span>
               </div>
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: '3px 12px', borderRadius: 20,
-                background: s.is_active ? 'var(--positive-bg)' : 'var(--border)',
-                color: s.is_active ? 'var(--positive)' : 'var(--text-muted)',
-              }}>
+              <span className={`badge ${s.is_active ? 'badge-completed' : 'badge-cancelled'}`}>
                 {s.is_active ? (isAr ? 'نشط' : 'Active') : (isAr ? 'غير نشط' : 'Inactive')}
               </span>
             </div>

@@ -679,6 +679,9 @@ body[dir="rtl"] .sidebar.collapsed .nav-link .nav-tooltip {
 .badge-cancelled  { background: #FEE2E2; color: #991B1B; }
 .badge-in_progress{ background: #EDE9FE; color: #5B21B6; }
 .badge-no_show    { background: #F3F4F6; color: #374151; }
+.badge-preparing  { background: #FEF3C7; color: #92400E; }
+.badge-shipped    { background: #E0E7FF; color: #3730A3; }
+.badge-delivered  { background: #D1FAE5; color: #065F46; }
 
 /* ─── Buttons ──────────────────────────────────────────── */
 .btn {
