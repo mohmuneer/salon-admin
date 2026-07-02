@@ -1,8 +1,8 @@
 'use client'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
 import { useLang } from '@/app/layout'
+import { useSalonSettings } from '@/lib/useSalonSettings'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DollarSign, Users, Scissors, Smile, Clock, Gift, UserCheck, Layers,
@@ -40,8 +40,8 @@ const sectionVariants = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 
 export default function Dashboard() {
   const { lang } = useLang()
   const isAr = lang === 'ar'
-  const { data: session } = useSession()
-  const userName = session?.user?.name || (isAr ? 'المدير' : 'Admin')
+  const { settings } = useSalonSettings()
+  const salonName = (isAr ? settings.name : settings.name_en) || settings.name
   const { GOLD, CHART_COLORS } = useThemeColors()
 
   const { data, isLoading, refetch, isFetching } = useDashboardData()
@@ -201,7 +201,7 @@ export default function Dashboard() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0 }}>
-                    {isAr ? `مرحباً، ${userName}` : `Welcome, ${userName}`}
+                    {isAr ? `مرحباً بك في ${salonName}` : `Welcome to ${salonName}`}
                   </h1>
                   <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 12px', borderRadius: 20, background: 'var(--primary-bg)', color: GOLD }}>v2.0</span>
                 </div>
