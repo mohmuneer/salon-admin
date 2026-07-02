@@ -3,26 +3,27 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
-  Warehouse, Building2, Pencil, Trash2, X, Check, CalendarDays,
+  Warehouse, Building2, Layers, Pencil, Trash2, X, Check, CalendarDays,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 
-const EMPTY_FORM = { name_ar: '', name_en: '', address: '', branch_ids: [] as string[] }
+const EMPTY_FORM = { name_ar: '', name_en: '', address: '', warehouse_group_id: '', branch_ids: [] as string[], department_ids: [] as string[] }
 
-function BranchMultiSelect({ branches, selected, onChange, isAr }: {
-  branches: any[]; selected: string[]; onChange: (ids: string[]) => void; isAr: boolean
+function CheckboxMultiSelect({ items, selected, onChange, isAr, emptyLabel, labelKey, labelKeyEn }: {
+  items: any[]; selected: string[]; onChange: (ids: string[]) => void; isAr: boolean
+  emptyLabel: string; labelKey: string; labelKeyEn: string
 }) {
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id])
   }
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, maxHeight: 180, overflowY: 'auto', padding: 8 }}>
-      {branches.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>{isAr ? 'لا توجد فروع' : 'No branches'}</div>
-      ) : branches.map((b: any) => {
-        const isChecked = selected.includes(b.id)
+      {items.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>{emptyLabel}</div>
+      ) : items.map((item: any) => {
+        const isChecked = selected.includes(item.id)
         return (
-          <label key={b.id} style={{
+          <label key={item.id} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
             fontSize: 13, background: isChecked ? 'var(--primary-bg)' : 'transparent',
           }}>
@@ -34,8 +35,8 @@ function BranchMultiSelect({ branches, selected, onChange, isAr }: {
             }}>
               {isChecked && <Check size={12} color="white" strokeWidth={3} />}
             </div>
-            <input type="checkbox" checked={isChecked} onChange={() => toggle(b.id)} style={{ display: 'none' }} />
-            {isAr ? b.name : (b.name_en || b.name)}
+            <input type="checkbox" checked={isChecked} onChange={() => toggle(item.id)} style={{ display: 'none' }} />
+            {isAr ? item[labelKey] : (item[labelKeyEn] || item[labelKey])}
           </label>
         )
       })}
@@ -50,6 +51,8 @@ export default function WarehousesPage() {
 
   const [warehouses, setWarehouses] = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
+  const [warehouseGroups, setWarehouseGroups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
@@ -61,6 +64,8 @@ export default function WarehousesPage() {
     Promise.all([
       fetch('/api/warehouses').then(r => r.ok ? r.json() : []).then(setWarehouses).catch(() => setWarehouses([])),
       fetch('/api/branches').then(r => r.ok ? r.json() : []).then(setBranches).catch(() => setBranches([])),
+      fetch('/api/departments').then(r => r.ok ? r.json() : []).then(setDepartments).catch(() => setDepartments([])),
+      fetch('/api/warehouse-groups').then(r => r.ok ? r.json() : []).then(setWarehouseGroups).catch(() => setWarehouseGroups([])),
     ]).then(() => setLoading(false))
   }
 
@@ -89,7 +94,10 @@ export default function WarehousesPage() {
   const toggleActive = async (w: any) => {
     await fetch('/api/warehouses', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: w.id, name_ar: w.name_ar, name_en: w.name_en, address: w.address, is_active: !w.is_active, branch_ids: (w.branches || []).map((b: any) => b.id) }),
+      body: JSON.stringify({
+        id: w.id, name_ar: w.name_ar, name_en: w.name_en, address: w.address, warehouse_group_id: w.warehouse_group_id || '',
+        is_active: !w.is_active, branch_ids: (w.branches || []).map((b: any) => b.id), department_ids: (w.departments || []).map((d: any) => d.id),
+      }),
     })
     load()
   }
@@ -111,7 +119,7 @@ export default function WarehousesPage() {
 
       {showAdd && (
         <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <div className="modal-header">
               <h2 style={{ fontSize: 16, fontWeight: 700 }}>{isAr ? 'إضافة مخزن جديد' : 'Add New Warehouse'}</h2>
               <button className="btn btn-icon" onClick={() => setShowAdd(false)}><X size={18} /></button>
@@ -133,8 +141,23 @@ export default function WarehousesPage() {
                   <input className="input-field" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
                 </div>
                 <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'مجموعة المخازن' : 'Warehouse Group'}</label>
+                  <select className="input-field" value={form.warehouse_group_id} onChange={e => setForm({ ...form, warehouse_group_id: e.target.value })}>
+                    <option value="">{isAr ? 'بدون مجموعة' : 'No Group'}</option>
+                    {warehouseGroups.filter((g: any) => g.is_active).map((g: any) => (
+                      <option key={g.id} value={g.id}>{isAr ? g.name_ar : (g.name_en || g.name_ar)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'الفروع المرتبطة' : 'Linked Branches'}</label>
-                  <BranchMultiSelect branches={branches} selected={form.branch_ids} onChange={ids => setForm({ ...form, branch_ids: ids })} isAr={isAr} />
+                  <CheckboxMultiSelect items={branches} selected={form.branch_ids} onChange={ids => setForm({ ...form, branch_ids: ids })} isAr={isAr}
+                    emptyLabel={isAr ? 'لا توجد فروع' : 'No branches'} labelKey="name" labelKeyEn="name_en" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'الأقسام المرتبطة' : 'Linked Departments'}</label>
+                  <CheckboxMultiSelect items={departments} selected={form.department_ids} onChange={ids => setForm({ ...form, department_ids: ids })} isAr={isAr}
+                    emptyLabel={isAr ? 'لا توجد أقسام' : 'No departments'} labelKey="name_ar" labelKeyEn="name_en" />
                 </div>
               </div>
             </div>
@@ -151,10 +174,10 @@ export default function WarehousesPage() {
           <thead>
             <tr>
               <th>{isAr ? 'اسم المخزن' : 'Name'}</th>
-              <th>{isAr ? 'العنوان' : 'Address'}</th>
+              <th>{isAr ? 'المجموعة' : 'Group'}</th>
               <th>{isAr ? 'الفروع' : 'Branches'}</th>
+              <th>{isAr ? 'الأقسام' : 'Departments'}</th>
               <th>{tr.status}</th>
-              <th>{isAr ? 'تاريخ الإضافة' : 'Created'}</th>
               <th>{tr.actions}</th>
             </tr>
           </thead>
@@ -176,13 +199,28 @@ export default function WarehousesPage() {
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'الاسم (إنجليزي)' : 'Name (English)'}</label>
                         <input className="input-field" value={editForm.name_en || ''} onChange={e => setEditForm((f: any) => ({ ...f, name_en: e.target.value }))} />
                       </div>
-                      <div style={{ gridColumn: '1 / -1' }}>
+                      <div>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'العنوان' : 'Address'}</label>
                         <input className="input-field" value={editForm.address || ''} onChange={e => setEditForm((f: any) => ({ ...f, address: e.target.value }))} />
                       </div>
+                      <div>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'مجموعة المخازن' : 'Warehouse Group'}</label>
+                        <select className="input-field" value={editForm.warehouse_group_id || ''} onChange={e => setEditForm((f: any) => ({ ...f, warehouse_group_id: e.target.value }))}>
+                          <option value="">{isAr ? 'بدون مجموعة' : 'No Group'}</option>
+                          {warehouseGroups.filter((g: any) => g.is_active).map((g: any) => (
+                            <option key={g.id} value={g.id}>{isAr ? g.name_ar : (g.name_en || g.name_ar)}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'الفروع المرتبطة' : 'Linked Branches'}</label>
-                        <BranchMultiSelect branches={branches} selected={editForm.branch_ids || []} onChange={ids => setEditForm((f: any) => ({ ...f, branch_ids: ids }))} isAr={isAr} />
+                        <CheckboxMultiSelect items={branches} selected={editForm.branch_ids || []} onChange={ids => setEditForm((f: any) => ({ ...f, branch_ids: ids }))} isAr={isAr}
+                          emptyLabel={isAr ? 'لا توجد فروع' : 'No branches'} labelKey="name" labelKeyEn="name_en" />
+                      </div>
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'الأقسام المرتبطة' : 'Linked Departments'}</label>
+                        <CheckboxMultiSelect items={departments} selected={editForm.department_ids || []} onChange={ids => setEditForm((f: any) => ({ ...f, department_ids: ids }))} isAr={isAr}
+                          emptyLabel={isAr ? 'لا توجد أقسام' : 'No departments'} labelKey="name_ar" labelKeyEn="name_en" />
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -205,10 +243,13 @@ export default function WarehousesPage() {
                         <div>
                           <div style={{ fontWeight: 600, color: 'var(--text)' }}>{w.name_ar}</div>
                           {w.name_en && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{w.name_en}</div>}
+                          {w.address && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{w.address}</div>}
                         </div>
                       </div>
                     </td>
-                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{w.address || '—'}</td>
+                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {(isAr ? w.group_name_ar : (w.group_name_en || w.group_name_ar)) || '—'}
+                    </td>
                     <td>
                       {(w.branches || []).length === 0 ? (
                         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
@@ -223,13 +264,22 @@ export default function WarehousesPage() {
                       )}
                     </td>
                     <td>
+                      {(w.departments || []).length === 0 ? (
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {w.departments.map((d: any) => (
+                            <span key={d.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '2px 8px', borderRadius: 10, background: 'var(--primary-bg)', color: 'var(--primary)' }}>
+                              <Layers size={11} />{isAr ? d.name_ar : (d.name_en || d.name_ar)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td>
                       <span className={`badge ${w.is_active ? 'badge-completed' : 'badge-cancelled'}`}>
                         {w.is_active ? tr.active : tr.inactive}
                       </span>
-                    </td>
-                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      <CalendarDays size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-                      {w.created_at ? new Date(w.created_at).toLocaleDateString(isAr ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 5 }}>
@@ -238,7 +288,8 @@ export default function WarehousesPage() {
                             setEditingId(w.id)
                             setEditForm({
                               id: w.id, name_ar: w.name_ar, name_en: w.name_en || '', address: w.address || '',
-                              is_active: w.is_active, branch_ids: (w.branches || []).map((b: any) => b.id),
+                              warehouse_group_id: w.warehouse_group_id || '', is_active: w.is_active,
+                              branch_ids: (w.branches || []).map((b: any) => b.id), department_ids: (w.departments || []).map((d: any) => d.id),
                             })
                           }}>
                           <Pencil size={15} color="var(--primary)" />
