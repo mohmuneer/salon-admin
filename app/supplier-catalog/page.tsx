@@ -106,7 +106,8 @@ export default function SupplierCatalogPage() {
 
   const openEdit = (e: any) => {
     setForm({
-      id: e.id, mode: 'single', supplier_id: e.supplier_id, product_id: e.product_id, group_id: '',
+      id: e.id, mode: e.link_type === 'group' ? 'group' : 'single',
+      supplier_id: e.supplier_id, product_id: e.product_id, group_id: e.group_id || '',
       supplier_sku: e.supplier_sku || '', supplier_item_name: e.supplier_item_name || '',
       purchase_unit: e.purchase_unit || '', currency_id: e.currency_id || '',
       price: e.price ?? '', min_order_qty: e.min_order_qty ?? '', lead_time_days: e.lead_time_days ?? '',
@@ -142,13 +143,13 @@ export default function SupplierCatalogPage() {
       if (form.id) {
         const res = await fetch('/api/supplier-catalog', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...sharedBody, id: form.id, product_id: form.product_id, supplier_sku: form.supplier_sku, supplier_item_name: form.supplier_item_name }),
+          body: JSON.stringify({ ...sharedBody, id: form.id, product_id: form.product_id, supplier_sku: form.supplier_sku, supplier_item_name: form.supplier_item_name, link_type: form.mode, group_id: form.group_id || null }),
         })
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'فشل الحفظ') }
       } else if (form.mode === 'single') {
         const res = await fetch('/api/supplier-catalog', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...sharedBody, product_ids: [form.product_id], supplier_sku: form.supplier_sku, supplier_item_name: form.supplier_item_name }),
+          body: JSON.stringify({ ...sharedBody, product_ids: [form.product_id], supplier_sku: form.supplier_sku, supplier_item_name: form.supplier_item_name, link_type: 'single', group_id: null }),
         })
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'فشل الحفظ') }
       } else {
@@ -156,7 +157,7 @@ export default function SupplierCatalogPage() {
         if (productIds.length === 0) { setError(isAr ? 'لا توجد أصناف في هذه المجموعة' : 'No products in this group'); setSaving(false); return }
         const res = await fetch('/api/supplier-catalog', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...sharedBody, product_ids: productIds }),
+          body: JSON.stringify({ ...sharedBody, product_ids: productIds, link_type: 'group', group_id: form.group_id }),
         })
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'فشل الحفظ') }
       }
@@ -169,9 +170,15 @@ export default function SupplierCatalogPage() {
     }
   }
 
-  const deleteItem = async (id: string) => {
-    if (!confirm(isAr ? 'هل أنت متأكد من حذف هذا الربط؟' : 'Are you sure you want to delete this link?')) return
-    await fetch('/api/supplier-catalog', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+  const deleteItem = async (e: any) => {
+    const msg = e.link_type === 'group'
+      ? (isAr ? 'هذا الربط لمجموعة أصناف كاملة. سيتم حذف جميع الأصناف المرتبطة. هل أنت متأكد؟' : 'This is a whole-group link. All associated products will be deleted. Are you sure?')
+      : (isAr ? 'هل أنت متأكد من حذف هذا الربط؟' : 'Are you sure you want to delete this link?')
+    if (!confirm(msg)) return
+    await fetch('/api/supplier-catalog', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: e.id, group_id: e.link_type === 'group' ? e.group_id : null, supplier_id: e.link_type === 'group' ? e.supplier_id : null }),
+    })
     load()
   }
 
@@ -183,6 +190,7 @@ export default function SupplierCatalogPage() {
       if (
         !(e.supplier_name_ar || '').toLowerCase().includes(q) &&
         !(e.product_name_ar || '').toLowerCase().includes(q) &&
+        !(e.group_name_ar || '').toLowerCase().includes(q) &&
         !(e.supplier_sku || '').toLowerCase().includes(q) &&
         !(e.supplier_item_name || '').toLowerCase().includes(q)
       ) return false
@@ -239,18 +247,16 @@ export default function SupplierCatalogPage() {
             <div className="modal-body">
               <div style={{ display: 'grid', gap: 16 }}>
 
-                {!form.id && (
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                      <input type="radio" checked={form.mode === 'single'} onChange={() => setForm({ ...form, mode: 'single' })} />
-                      <Package size={14} /> {isAr ? 'صنف واحد' : 'Single Product'}
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                      <input type="radio" checked={form.mode === 'group'} onChange={() => setForm({ ...form, mode: 'group' })} />
-                      <Boxes size={14} /> {isAr ? 'مجموعة أصناف كاملة' : 'Whole Product Group'}
-                    </label>
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                    <input type="radio" checked={form.mode === 'single'} onChange={() => setForm({ ...form, mode: 'single' })} />
+                    <Package size={14} /> {isAr ? 'صنف واحد' : 'Single Product'}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                    <input type="radio" checked={form.mode === 'group'} onChange={() => setForm({ ...form, mode: 'group' })} />
+                    <Boxes size={14} /> {isAr ? 'مجموعة أصناف كاملة' : 'Whole Product Group'}
+                  </label>
+                </div>
 
                 <div>
                   <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
@@ -426,7 +432,17 @@ export default function SupplierCatalogPage() {
                       {isAr ? e.supplier_name_ar : (e.supplier_name_en || e.supplier_name_ar)}
                     </div>
                   </td>
-                  <td>{e.product_name_ar}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {e.product_name_ar}
+                      {e.link_type === 'group' && e.group_name_ar && (
+                        <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 4, background: 'var(--primary-bg)', color: 'var(--primary)' }}>
+                          <Boxes size={10} style={{ verticalAlign: 'middle', marginInlineEnd: 2 }} />
+                          {e.group_name_ar}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ color: 'var(--text-secondary)' }}>{e.supplier_sku || '—'}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{e.supplier_item_name || '—'}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{e.purchase_unit || '—'}</td>
@@ -448,7 +464,7 @@ export default function SupplierCatalogPage() {
                       <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'} onClick={() => openEdit(e)}>
                         <Pencil size={15} color="var(--primary)" />
                       </button>
-                      <button className="btn btn-icon" title={isAr ? 'حذف' : 'Delete'} onClick={() => deleteItem(e.id)}>
+                      <button className="btn btn-icon" title={isAr ? 'حذف' : 'Delete'} onClick={() => deleteItem(e)}>
                         <Trash2 size={15} color="#EF4444" />
                       </button>
                     </div>
