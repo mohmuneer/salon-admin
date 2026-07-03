@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
-  Truck, Phone, Mail, Package, Pencil, Trash2, X, Check, CalendarDays, KeyRound,
+  Truck, Phone, Mail, Package, Pencil, Trash2, X, Check, CalendarDays, KeyRound, Search,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 
@@ -12,33 +12,52 @@ const EMPTY_FORM = { name_ar: '', name_en: '', phone: '', email: '', address: ''
 function ProductMultiSelect({ products, selected, onChange, isAr }: {
   products: any[]; selected: string[]; onChange: (ids: string[]) => void; isAr: boolean
 }) {
+  const [query, setQuery] = useState('')
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id])
   }
+  const q = query.trim().toLowerCase()
+  const filtered = q
+    ? products.filter((p: any) => (p.name_ar || '').toLowerCase().includes(q) || (p.name_en || '').toLowerCase().includes(q))
+    : products
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 10, maxHeight: 180, overflowY: 'auto', padding: 8 }}>
-      {products.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>{isAr ? 'لا توجد منتجات' : 'No products'}</div>
-      ) : products.map((p: any) => {
-        const isChecked = selected.includes(p.id)
-        return (
-          <label key={p.id} style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
-            fontSize: 13, background: isChecked ? 'var(--primary-bg)' : 'transparent',
-          }}>
-            <div style={{
-              width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-              border: isChecked ? 'none' : '2px solid #D1D5DB',
-              background: isChecked ? 'var(--primary)' : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+    <div>
+      <div style={{ position: 'relative', marginBottom: 6 }}>
+        <Search size={13} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: 10, color: 'var(--text-muted)' }} />
+        <input
+          className="input-field"
+          style={{ paddingInlineStart: 30, fontSize: 13, height: 32 }}
+          placeholder={isAr ? 'بحث عن منتج...' : 'Search products...'}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 10, maxHeight: 180, overflowY: 'auto', padding: 8 }}>
+        {filtered.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>
+            {products.length === 0 ? (isAr ? 'لا توجد منتجات' : 'No products') : (isAr ? 'لا توجد نتائج' : 'No matches')}
+          </div>
+        ) : filtered.map((p: any) => {
+          const isChecked = selected.includes(p.id)
+          return (
+            <label key={p.id} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
+              fontSize: 13, background: isChecked ? 'var(--primary-bg)' : 'transparent',
             }}>
-              {isChecked && <Check size={12} color="white" strokeWidth={3} />}
-            </div>
-            <input type="checkbox" checked={isChecked} onChange={() => toggle(p.id)} style={{ display: 'none' }} />
-            {p.name_ar}
-          </label>
-        )
-      })}
+              <div style={{
+                width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                border: isChecked ? 'none' : '2px solid #D1D5DB',
+                background: isChecked ? 'var(--primary)' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {isChecked && <Check size={12} color="white" strokeWidth={3} />}
+              </div>
+              <input type="checkbox" checked={isChecked} onChange={() => toggle(p.id)} style={{ display: 'none' }} />
+              {p.name_ar}
+            </label>
+          )
+        })}
+      </div>
     </div>
   )
 }
