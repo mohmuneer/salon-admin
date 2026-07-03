@@ -83,6 +83,7 @@ export default function SupplierCatalogPage() {
   const [defaultsOnly, setDefaultsOnly] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [groupProductSearch, setGroupProductSearch] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -264,18 +265,31 @@ export default function SupplierCatalogPage() {
                 </div>
 
                 {form.mode === 'single' ? (
-                  <div>
-                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                      <Package size={13} style={{ marginInlineEnd: 4 }} />{isAr ? 'الصنف' : 'Product'} *
-                    </label>
-                    <ProductSearchSelect
-                      products={products}
-                      value={form.product_id}
-                      onChange={id => setForm({ ...form, product_id: id })}
-                      isAr={isAr}
-                      placeholder={isAr ? 'ابحث عن صنف...' : 'Search for a product...'}
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                        <Boxes size={13} style={{ marginInlineEnd: 4 }} />{isAr ? 'تصفية حسب المجموعة (اختياري)' : 'Filter by group (optional)'}
+                      </label>
+                      <select className="input-field" value={form.group_id} onChange={e => setForm({ ...form, group_id: e.target.value, product_id: '' })}>
+                        <option value="">{isAr ? 'كل المجموعات' : 'All groups'}</option>
+                        {productGroups.filter((g: any) => g.is_active).map((g: any) => (
+                          <option key={g.id} value={g.id}>{isAr ? g.name_ar : (g.name_en || g.name_ar)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                        <Package size={13} style={{ marginInlineEnd: 4 }} />{isAr ? 'الصنف' : 'Product'} *
+                      </label>
+                      <ProductSearchSelect
+                        products={form.group_id ? products.filter((p: any) => p.group_id === form.group_id) : products}
+                        value={form.product_id}
+                        onChange={id => setForm({ ...form, product_id: id })}
+                        isAr={isAr}
+                        placeholder={isAr ? 'ابحث عن صنف...' : 'Search for a product...'}
+                      />
+                    </div>
+                  </>
                 ) : (
                   <div>
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
