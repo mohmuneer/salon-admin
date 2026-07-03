@@ -89,6 +89,7 @@ export default function SuppliersPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [groupFilter, setGroupFilter] = useState('')
   const [editGroupFilter, setEditGroupFilter] = useState('')
+  const [catalogEntries, setCatalogEntries] = useState<any[]>([])
   const [productPolicies, setProductPolicies] = useState<Record<string, any>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
@@ -100,6 +101,7 @@ export default function SuppliersPage() {
       fetch('/api/supplier-groups').then(r => r.ok ? r.json() : []).then(setGroups).catch(() => setGroups([])),
       fetch('/api/products').then(r => r.ok ? r.json() : []).then(setProducts).catch(() => setProducts([])),
       fetch('/api/product-groups').then(r => r.ok ? r.json() : []).then(setProductGroups).catch(() => setProductGroups([])),
+      fetch('/api/supplier-catalog').then(r => r.ok ? r.json() : []).then(setCatalogEntries).catch(() => setCatalogEntries([])),
     ]).then(() => setLoading(false))
   }
 
@@ -531,8 +533,17 @@ export default function SuppliersPage() {
                               product_ids: existingProductIds, password: '',
                             })
                             const polKey = `edit_${s.id}`
+                            const existingCatalog = catalogEntries.filter((e: any) => e.supplier_id === s.id)
                             const initPolicies: Record<string, any> = {}
-                            existingProductIds.forEach((pid: string) => { initPolicies[pid] = { ...EMPTY_POLICY } })
+                            existingProductIds.forEach((pid: string) => {
+                              const entry = existingCatalog.find((e: any) => e.product_id === pid)
+                              initPolicies[pid] = entry ? {
+                                supplier_sku: entry.supplier_sku || '',
+                                price: entry.price ?? '',
+                                lead_time_days: entry.lead_time_days ?? '',
+                                is_default: entry.is_default === true,
+                              } : { ...EMPTY_POLICY }
+                            })
                             setProductPolicies(pp => ({ ...pp, [polKey]: initPolicies }))
                           }}>
                           <Pencil size={15} color="var(--primary)" />
