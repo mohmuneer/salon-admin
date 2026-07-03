@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
-  ClipboardList, Truck, Package, Boxes, Search, Pencil, Trash2, X, Check, Star, Calendar,
+  ClipboardList, Truck, Package, Boxes, Search, Pencil, Trash2, X, Check, Star, Calendar, ChevronDown,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 
@@ -12,6 +12,57 @@ const EMPTY_FORM = {
   supplier_sku: '', supplier_item_name: '', purchase_unit: '', currency_id: '',
   price: '', min_order_qty: '', lead_time_days: '', priority: '0', is_default: false,
   contract_start_date: '', contract_end_date: '',
+}
+
+function ProductSearchSelect({ products, value, onChange, isAr, placeholder }: {
+  products: any[]; value: string; onChange: (id: string) => void; isAr: boolean; placeholder: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const selected = products.find((p: any) => p.id === value)
+
+  const filtered = query.trim()
+    ? products.filter((p: any) => (p.name_ar || '').toLowerCase().includes(query.trim().toLowerCase()))
+    : products
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        <Search size={13} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: 10, color: 'var(--text-muted)' }} />
+        <input
+          className="input-field"
+          style={{ paddingInlineStart: 30, paddingInlineEnd: 28 }}
+          placeholder={placeholder}
+          value={open ? query : (selected?.name_ar || '')}
+          onFocus={() => { setOpen(true); setQuery('') }}
+          onChange={e => setQuery(e.target.value)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+        <ChevronDown size={14} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineEnd: 10, color: 'var(--text-muted)', pointerEvents: 'none' }} />
+      </div>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', insetInlineStart: 0, insetInlineEnd: 0, zIndex: 20,
+          background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10,
+          marginTop: 4, maxHeight: 220, overflowY: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+        }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: 10, fontSize: 13, color: 'var(--text-muted)' }}>{isAr ? 'لا توجد نتائج' : 'No matches'}</div>
+          ) : filtered.map((p: any) => (
+            <div key={p.id}
+              onMouseDown={() => { onChange(p.id); setOpen(false); setQuery('') }}
+              style={{
+                padding: '8px 12px', fontSize: 13, cursor: 'pointer',
+                background: p.id === value ? 'var(--primary-bg)' : 'transparent',
+              }}
+            >
+              {p.name_ar}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function SupplierCatalogPage() {
@@ -217,12 +268,13 @@ export default function SupplierCatalogPage() {
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                       <Package size={13} style={{ marginInlineEnd: 4 }} />{isAr ? 'الصنف' : 'Product'} *
                     </label>
-                    <select className="input-field" value={form.product_id} onChange={e => setForm({ ...form, product_id: e.target.value })}>
-                      <option value="">{isAr ? 'اختر الصنف' : 'Select product'}</option>
-                      {products.map((p: any) => (
-                        <option key={p.id} value={p.id}>{p.name_ar}</option>
-                      ))}
-                    </select>
+                    <ProductSearchSelect
+                      products={products}
+                      value={form.product_id}
+                      onChange={id => setForm({ ...form, product_id: id })}
+                      isAr={isAr}
+                      placeholder={isAr ? 'ابحث عن صنف...' : 'Search for a product...'}
+                    />
                   </div>
                 ) : (
                   <div>
