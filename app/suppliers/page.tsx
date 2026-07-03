@@ -92,6 +92,7 @@ export default function SuppliersPage() {
   const [catalogEntries, setCatalogEntries] = useState<any[]>([])
   const [productPolicies, setProductPolicies] = useState<Record<string, any>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [editForm, setEditForm] = useState<any>({})
 
   const load = () => {
@@ -150,6 +151,7 @@ export default function SuppliersPage() {
     if (supplierId && productIds.length > 0) {
       await saveCatalogPolicies(supplierId, productIds, editPolicies)
     }
+    setShowEditModal(false)
     setEditingId(null)
     setEditForm({})
     setProductPolicies({})
@@ -325,6 +327,154 @@ export default function SuppliersPage() {
         </div>
       )}
 
+      {showEditModal && (
+        <div className="modal-overlay" onClick={() => { setShowEditModal(false); setEditingId(null); setEditGroupFilter('') }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: 16, fontWeight: 700 }}>{isAr ? 'تعديل بيانات المورد' : 'Edit Supplier'}</h2>
+              <button className="btn btn-icon" onClick={() => { setShowEditModal(false); setEditingId(null); setEditGroupFilter('') }}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'الاسم (عربي)' : 'Name (Arabic)'} *</label>
+                    <input className="input-field" value={editForm.name_ar || ''} onChange={e => setEditForm((f: any) => ({ ...f, name_ar: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'الاسم (إنجليزي)' : 'Name (English)'}</label>
+                    <input className="input-field" value={editForm.name_en || ''} onChange={e => setEditForm((f: any) => ({ ...f, name_en: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{tr.phone}</label>
+                    <input className="input-field" value={editForm.phone || ''} onChange={e => setEditForm((f: any) => ({ ...f, phone: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{tr.email}</label>
+                    <input className="input-field" value={editForm.email || ''} onChange={e => setEditForm((f: any) => ({ ...f, email: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'العنوان' : 'Address'}</label>
+                  <input className="input-field" value={editForm.address || ''} onChange={e => setEditForm((f: any) => ({ ...f, address: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'مجموعة الموردين' : 'Supplier Group'}</label>
+                  <select className="input-field" value={editForm.supplier_group_id || ''} onChange={e => setEditForm((f: any) => ({ ...f, supplier_group_id: e.target.value }))}>
+                    <option value="">{isAr ? 'بدون مجموعة' : 'No Group'}</option>
+                    {groups.filter((g: any) => g.is_active).map((g: any) => (
+                      <option key={g.id} value={g.id}>{isAr ? g.name_ar : (g.name_en || g.name_ar)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                    <KeyRound size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
+                    {isAr ? 'كلمة مرور بوابة المورد' : 'Supplier Portal Password'}
+                  </label>
+                  <input type="password" className="input-field" value={editForm.password || ''} onChange={e => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
+                    placeholder={isAr ? 'اتركه فارغاً لعدم التغيير' : 'Leave blank to keep unchanged'} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'المنتجات الموردة' : 'Supplied Products'}</label>
+                  <ProductMultiSelect
+                    products={editGroupFilter ? products.filter((p: any) => p.group_id === editGroupFilter) : products}
+                    selected={editForm.product_ids || []}
+                    onChange={ids => {
+                      setEditForm((f: any) => ({ ...f, product_ids: ids }))
+                      const polKey = `edit_${editForm.id}`
+                      const newPolicies = { ...productPolicies, [polKey]: { ...(productPolicies[polKey] || {}) } }
+                      ids.forEach((id: string) => { if (!newPolicies[polKey][id]) newPolicies[polKey][id] = { ...EMPTY_POLICY } })
+                      setProductPolicies(newPolicies)
+                    }}
+                    isAr={isAr}
+                    productGroups={productGroups}
+                    groupFilter={editGroupFilter}
+                    onGroupFilterChange={setEditGroupFilter}
+                  />
+                </div>
+                {(editForm.product_ids || []).length > 0 && (
+                  <div>
+                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                      <Star size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
+                      {isAr ? 'سياسة المورد للأصناف المختارة' : 'Supplier Policy for Selected Products'}
+                    </label>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border)' }}>
+                            <th style={{ padding: '8px 10px', textAlign: 'start', fontWeight: 600 }}>{isAr ? 'الصنف' : 'Product'}</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'start', fontWeight: 600 }}>{isAr ? 'رقم الصنف' : 'SKU'}</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'start', fontWeight: 600, width: 100 }}>{isAr ? 'السعر' : 'Price'}</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'start', fontWeight: 600, width: 80 }}>{isAr ? 'مدة التوريد' : 'Lead Time'}</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, width: 70 }}>{isAr ? 'افتراضي' : 'Default'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(editForm.product_ids || []).map((pid: string) => {
+                            const p = products.find((x: any) => x.id === pid)
+                            const polKey = `edit_${editForm.id}`
+                            const pol = (productPolicies[polKey] || {})[pid] || EMPTY_POLICY
+                            return (
+                              <tr key={pid} style={{ borderBottom: '1px solid var(--border)' }}>
+                                <td style={{ padding: '6px 10px', fontWeight: 500 }}>{p?.name_ar || '—'}</td>
+                                <td style={{ padding: '6px 10px' }}>
+                                  <input className="input-field" style={{ height: 28, fontSize: 12, width: 90 }}
+                                    value={pol.supplier_sku}
+                                    onChange={e => {
+                                      const k = `edit_${editForm.id}`;
+                                      setProductPolicies(pp => ({ ...pp, [k]: { ...(pp[k] || {}), [pid]: { ...((pp[k] || {})[pid] || EMPTY_POLICY), supplier_sku: e.target.value } } }))
+                                    }}
+                                    placeholder={isAr ? 'SKU' : 'SKU'} />
+                                </td>
+                                <td style={{ padding: '6px 10px' }}>
+                                  <input className="input-field" style={{ height: 28, fontSize: 12, width: 90 }}
+                                    type="number" step="0.01" min="0" value={pol.price}
+                                    onChange={e => {
+                                      const k = `edit_${editForm.id}`;
+                                      setProductPolicies(pp => ({ ...pp, [k]: { ...(pp[k] || {}), [pid]: { ...((pp[k] || {})[pid] || EMPTY_POLICY), price: e.target.value } } }))
+                                    }}
+                                    placeholder="0.00" />
+                                </td>
+                                <td style={{ padding: '6px 10px' }}>
+                                  <input className="input-field" style={{ height: 28, fontSize: 12, width: 70 }}
+                                    type="number" min="0" value={pol.lead_time_days}
+                                    onChange={e => {
+                                      const k = `edit_${editForm.id}`;
+                                      setProductPolicies(pp => ({ ...pp, [k]: { ...(pp[k] || {}), [pid]: { ...((pp[k] || {})[pid] || EMPTY_POLICY), lead_time_days: e.target.value } } }))
+                                    }}
+                                    placeholder={isAr ? 'أيام' : 'days'} />
+                                </td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                  <input type="checkbox" checked={pol.is_default === true}
+                                    onChange={e => {
+                                      const k = `edit_${editForm.id}`
+                                      const groupPolicies = { ...(productPolicies[k] || {}) }
+                                      Object.keys(groupPolicies).forEach(kid => { groupPolicies[kid] = { ...groupPolicies[kid], is_default: false } })
+                                      groupPolicies[pid] = { ...(groupPolicies[pid] || EMPTY_POLICY), is_default: e.target.checked }
+                                      setProductPolicies(pp => ({ ...pp, [k]: groupPolicies }))
+                                    }} />
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => { setShowEditModal(false); setEditingId(null); setEditGroupFilter('') }}>{tr.cancel}</button>
+              <button className="btn btn-primary" onClick={saveEdit}>{tr.save}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="table-container">
         <table className="data-table">
           <thead>
@@ -344,150 +494,7 @@ export default function SuppliersPage() {
               <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
             ) : suppliers.map((s: any) => (
               <tr key={s.id} style={{ opacity: s.is_active ? 1 : 0.5 }}>
-                {editingId === s.id ? (
-                  <td colSpan={6} style={{ padding: 20 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'الاسم (عربي)' : 'Name (Arabic)'} *</label>
-                        <input className="input-field" value={editForm.name_ar || ''} onChange={e => setEditForm((f: any) => ({ ...f, name_ar: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'الاسم (إنجليزي)' : 'Name (English)'}</label>
-                        <input className="input-field" value={editForm.name_en || ''} onChange={e => setEditForm((f: any) => ({ ...f, name_en: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{tr.phone}</label>
-                        <input className="input-field" value={editForm.phone || ''} onChange={e => setEditForm((f: any) => ({ ...f, phone: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{tr.email}</label>
-                        <input className="input-field" value={editForm.email || ''} onChange={e => setEditForm((f: any) => ({ ...f, email: e.target.value }))} />
-                      </div>
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'العنوان' : 'Address'}</label>
-                        <input className="input-field" value={editForm.address || ''} onChange={e => setEditForm((f: any) => ({ ...f, address: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'مجموعة الموردين' : 'Supplier Group'}</label>
-                        <select className="input-field" value={editForm.supplier_group_id || ''} onChange={e => setEditForm((f: any) => ({ ...f, supplier_group_id: e.target.value }))}>
-                          <option value="">{isAr ? 'بدون مجموعة' : 'No Group'}</option>
-                          {groups.filter((g: any) => g.is_active).map((g: any) => (
-                            <option key={g.id} value={g.id}>{isAr ? g.name_ar : (g.name_en || g.name_ar)}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                          <KeyRound size={12} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-                          {isAr ? 'كلمة مرور بوابة المورد' : 'Supplier Portal Password'}
-                        </label>
-                        <input type="password" className="input-field" value={editForm.password || ''} onChange={e => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
-                          placeholder={isAr ? 'اتركه فارغاً لعدم التغيير' : 'Leave blank to keep unchanged'} />
-                      </div>
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'المنتجات الموردة' : 'Supplied Products'}</label>
-                        <ProductMultiSelect
-                          products={editGroupFilter ? products.filter((p: any) => p.group_id === editGroupFilter) : products}
-                          selected={editForm.product_ids || []}
-                          onChange={ids => {
-                            setEditForm((f: any) => ({ ...f, product_ids: ids }))
-                            const polKey = `edit_${editForm.id}`
-                            const newPolicies = { ...productPolicies, [polKey]: { ...(productPolicies[polKey] || {}) } }
-                            ids.forEach((id: string) => { if (!newPolicies[polKey][id]) newPolicies[polKey][id] = { ...EMPTY_POLICY } })
-                            setProductPolicies(newPolicies)
-                          }}
-                          isAr={isAr}
-                          productGroups={productGroups}
-                          groupFilter={editGroupFilter}
-                          onGroupFilterChange={setEditGroupFilter}
-                        />
-                      </div>
-                      {(editForm.product_ids || []).length > 0 && (
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                            <Star size={12} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-                            {isAr ? 'سياسة المورد للأصناف المختارة' : 'Supplier Policy for Selected Products'}
-                          </label>
-                          <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', fontSize: 12 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                              <thead>
-                                <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border)' }}>
-                                  <th style={{ padding: '6px 8px', textAlign: 'start', fontWeight: 600 }}>{isAr ? 'الصنف' : 'Product'}</th>
-                                  <th style={{ padding: '6px 8px', textAlign: 'start', fontWeight: 600 }}>{isAr ? 'رقم الصنف' : 'SKU'}</th>
-                                  <th style={{ padding: '6px 8px', textAlign: 'start', fontWeight: 600, width: 90 }}>{isAr ? 'السعر' : 'Price'}</th>
-                                  <th style={{ padding: '6px 8px', textAlign: 'start', fontWeight: 600, width: 70 }}>{isAr ? 'مدة التوريد' : 'Lead Time'}</th>
-                                  <th style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 600, width: 60 }}>{isAr ? 'افتراضي' : 'Default'}</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(editForm.product_ids || []).map((pid: string) => {
-                                  const p = products.find((x: any) => x.id === pid)
-                                  const polKey = `edit_${editForm.id}`
-                                  const pol = (productPolicies[polKey] || {})[pid] || EMPTY_POLICY
-                                  return (
-                                    <tr key={pid} style={{ borderBottom: '1px solid var(--border)' }}>
-                                      <td style={{ padding: '4px 8px', fontWeight: 500 }}>{p?.name_ar || '—'}</td>
-                                      <td style={{ padding: '4px 8px' }}>
-                                        <input className="input-field" style={{ height: 26, fontSize: 11, width: 80 }}
-                                          value={pol.supplier_sku}
-                                          onChange={e => {
-                                            const k = `edit_${editForm.id}`;
-                                            setProductPolicies(pp => ({ ...pp, [k]: { ...(pp[k] || {}), [pid]: { ...((pp[k] || {})[pid] || EMPTY_POLICY), supplier_sku: e.target.value } } }))
-                                          }}
-                                          placeholder="SKU" />
-                                      </td>
-                                      <td style={{ padding: '4px 8px' }}>
-                                        <input className="input-field" style={{ height: 26, fontSize: 11, width: 80 }}
-                                          type="number" step="0.01" min="0" value={pol.price}
-                                          onChange={e => {
-                                            const k = `edit_${editForm.id}`;
-                                            setProductPolicies(pp => ({ ...pp, [k]: { ...(pp[k] || {}), [pid]: { ...((pp[k] || {})[pid] || EMPTY_POLICY), price: e.target.value } } }))
-                                          }}
-                                          placeholder="0.00" />
-                                      </td>
-                                      <td style={{ padding: '4px 8px' }}>
-                                        <input className="input-field" style={{ height: 26, fontSize: 11, width: 60 }}
-                                          type="number" min="0" value={pol.lead_time_days}
-                                          onChange={e => {
-                                            const k = `edit_${editForm.id}`;
-                                            setProductPolicies(pp => ({ ...pp, [k]: { ...(pp[k] || {}), [pid]: { ...((pp[k] || {})[pid] || EMPTY_POLICY), lead_time_days: e.target.value } } }))
-                                          }}
-                                          placeholder={isAr ? 'أيام' : 'days'} />
-                                      </td>
-                                      <td style={{ padding: '4px 8px', textAlign: 'center' }}>
-                                        <input type="checkbox" checked={pol.is_default === true}
-                                          onChange={e => {
-                                            const k = `edit_${editForm.id}`
-                                            const groupPolicies = { ...(productPolicies[k] || {}) }
-                                            Object.keys(groupPolicies).forEach(kid => { groupPolicies[kid] = { ...groupPolicies[kid], is_default: false } })
-                                            groupPolicies[pid] = { ...(groupPolicies[pid] || EMPTY_POLICY), is_default: e.target.checked }
-                                            setProductPolicies(pp => ({ ...pp, [k]: groupPolicies }))
-                                          }} />
-                                      </td>
-                                    </tr>
-                                  )
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                      <button className="btn btn-primary btn-sm" onClick={saveEdit} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <Check size={14} /> {tr.save}
-                      </button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => { setEditingId(null); setEditGroupFilter('') }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <X size={14} /> {tr.cancel}
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => deleteItem(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, marginInlineStart: 'auto' }}>
-                        <Trash2 size={14} /> {isAr ? 'حذف' : 'Delete'}
-                      </button>
-                    </div>
-                  </td>
-                ) : (
-                  <>
-                    <td>
+                  <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Truck size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                         <div>
@@ -527,6 +534,7 @@ export default function SuppliersPage() {
                             setEditGroupFilter('')
                             const existingProductIds = (s.products || []).map((p: any) => p.id)
                             setEditingId(s.id)
+                            setShowEditModal(true)
                             setEditForm({
                               id: s.id, name_ar: s.name_ar, name_en: s.name_en || '', phone: s.phone || '', email: s.email || '',
                               address: s.address || '', supplier_group_id: s.supplier_group_id || '', is_active: s.is_active,
@@ -557,9 +565,7 @@ export default function SuppliersPage() {
                         </button>
                       </div>
                     </td>
-                  </>
-                )}
-              </tr>
+                </tr>
             ))}
           </tbody>
         </table>
