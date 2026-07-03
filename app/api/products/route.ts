@@ -13,7 +13,15 @@ export async function GET() {
              d.name_ar AS department_name, d.name_en AS department_name_en,
              c.code AS currency_code, c.symbol AS currency_symbol, c.name AS currency_name,
              g.name_ar AS group_name, g.name_en AS group_name_en,
-             (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) AS gallery_count
+             (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) AS gallery_count,
+             COALESCE(
+               (SELECT json_agg(json_build_object('warehouse_name', w.name_ar, 'warehouse_group_name', wg.name_ar) ORDER BY w.name_ar)
+                FROM group_warehouses gw
+                JOIN warehouses w ON w.id = gw.warehouse_id
+                LEFT JOIN warehouse_groups wg ON wg.id = w.warehouse_group_id
+                WHERE gw.group_id = p.group_id),
+               '[]'::json
+             ) AS warehouses
       FROM products p
       LEFT JOIN departments d ON d.id = p.department_id
       LEFT JOIN currencies c ON c.id = p.currency_id

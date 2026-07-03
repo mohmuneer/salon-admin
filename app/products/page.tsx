@@ -5,7 +5,7 @@ import { t } from '@/lib/translations'
 import AddButton from '@/app/components/AddButton'
 import PriceInput from '@/components/PriceInput'
 import MediaGallery from '@/components/MediaGallery'
-import { AlertTriangle, Upload, Pencil, Trash2, X, Check, Search, Layers, Image, Eye } from 'lucide-react'
+import { AlertTriangle, Upload, Pencil, Trash2, X, Check, Search, Layers, Image, Eye, Warehouse, Boxes } from 'lucide-react'
 
 export default function ProductsPage() {
   const { lang } = useLang()
@@ -248,6 +248,8 @@ export default function ProductsPage() {
                 <th>{lang==='ar'?'صورة':'Image'}</th>
                 <th>{tr.name}</th>
                 <th>{tr.department}</th>
+                <th>{lang==='ar'?'المجموعة':'Group'}</th>
+                <th>{lang==='ar'?'المخزن':'Warehouse'}</th>
                 <th>{tr.brand}</th>
                 <th>{tr.category}</th>
                 <th>{tr.price}</th>
@@ -261,10 +263,10 @@ export default function ProductsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={12} style={{ textAlign:'center', padding:40, color:'var(--text-muted)' }}>{tr.loading}</td></tr>
+                <tr><td colSpan={14} style={{ textAlign:'center', padding:40, color:'var(--text-muted)' }}>{tr.loading}</td></tr>
               ) : !groupByDept ? (
                 filtered.length === 0 ? (
-                  <tr><td colSpan={12} style={{ textAlign:'center', padding:40, color:'var(--text-muted)' }}>{lang==='ar'?'لا توجد منتجات':'No products'}</td></tr>
+                  <tr><td colSpan={14} style={{ textAlign:'center', padding:40, color:'var(--text-muted)' }}>{lang==='ar'?'لا توجد منتجات':'No products'}</td></tr>
                 ) : filtered.map((p: any) => {
                   const lowStock = p.stock_qty <= p.min_stock_alert
                   const editing = editingId === p.id
@@ -304,6 +306,34 @@ export default function ProductsPage() {
                           <span style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <Layers size={12} /> {p.department_name || (lang==='ar'?'—':'—')}
                           </span>
+                        )}
+                      </td>
+                      <td style={{ color:'#6B7280', fontSize:13 }}>
+                        {editing ? (
+                          <select className="input-field" style={{ width:130 }} value={editForm.group_id||''}
+                            onChange={e => setEditForm({ ...editForm, group_id: e.target.value })}>
+                            <option value="">{lang==='ar'?'بدون مجموعة':'No Group'}</option>
+                            {groups.filter((g:any) => g.is_active).map((g:any) => (
+                              <option key={g.id} value={g.id}>{lang==='ar'?g.name_ar:(g.name_en||g.name_ar)}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <Boxes size={12} /> {p.group_name || '—'}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ color:'#6B7280', fontSize:12 }}>
+                        {(p.warehouses || []).length === 0 ? '—' : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                            {p.warehouses.map((w: any, i: number) => (
+                              <span key={i} style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                <Warehouse size={12} />
+                                {w.warehouse_name}
+                                {w.warehouse_group_name && <span style={{ color:'var(--text-muted)' }}>({w.warehouse_group_name})</span>}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </td>
                       <td style={{ color:'#6B7280' }}>
@@ -367,7 +397,7 @@ export default function ProductsPage() {
                 Object.entries(grouped || {}).map(([deptId, group]: [string, any]) => (
                   <React.Fragment key={`dept-${deptId}`}>
                     <tr style={{ background:'#F9F7F4' }}>
-                      <td colSpan={12} style={{ padding:'10px 16px', fontWeight:700, fontSize:14, color:'var(--text)' }}>
+                      <td colSpan={14} style={{ padding:'10px 16px', fontWeight:700, fontSize:14, color:'var(--text)' }}>
                         <Layers size={16} style={{ verticalAlign:'middle', marginInlineEnd:8 }} />
                         {group.name} ({group.products.length})
                       </td>
@@ -402,6 +432,34 @@ export default function ProductsPage() {
                               </select>
                             ) : (
                               <Layers size={12} style={{ verticalAlign:'middle', marginInlineEnd:4 }} />
+                            )}
+                          </td>
+                          <td style={{ color:'#6B7280', fontSize:13 }}>
+                            {editing ? (
+                              <select className="input-field" style={{ width:130 }} value={editForm.group_id||''}
+                                onChange={e => setEditForm({ ...editForm, group_id: e.target.value })}>
+                                <option value="">{lang==='ar'?'بدون مجموعة':'No Group'}</option>
+                                {groups.filter((g:any) => g.is_active).map((g:any) => (
+                                  <option key={g.id} value={g.id}>{lang==='ar'?g.name_ar:(g.name_en||g.name_ar)}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                <Boxes size={12} /> {p.group_name || '—'}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ color:'#6B7280', fontSize:12 }}>
+                            {(p.warehouses || []).length === 0 ? '—' : (
+                              <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                                {p.warehouses.map((w: any, i: number) => (
+                                  <span key={i} style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                    <Warehouse size={12} />
+                                    {w.warehouse_name}
+                                    {w.warehouse_group_name && <span style={{ color:'var(--text-muted)' }}>({w.warehouse_group_name})</span>}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </td>
                           <td style={{ color:'#6B7280' }}>
