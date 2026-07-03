@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Truck, LogOut, CalendarPlus, Phone, KeyRound, Building2, Clock, MessageSquare, X, Loader2 } from 'lucide-react'
-
-const STORAGE_KEY = 'glamour-supplier'
+import { useRouter } from 'next/navigation'
+import { Truck, LogOut, CalendarPlus, Building2, Clock, MessageSquare, X, Loader2, Phone, Package, Eye } from 'lucide-react'
+import { useSupplierAuth } from '@/components/SupplierAuthContext'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'قيد الانتظار',
@@ -19,110 +19,47 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: '#9CA3AF',
 }
 
-type Supplier = { id: string; name_ar: string; name_en?: string; phone: string; email?: string }
-
-export default function SupplierPortalPage() {
-  const [supplier, setSupplier] = useState<Supplier | null>(null)
-  const [checkedStorage, setCheckedStorage] = useState(false)
+export default function SupplierDashboardPage() {
+  const router = useRouter()
+  const { supplier, loading, logout } = useSupplierAuth()
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setSupplier(JSON.parse(raw))
-    } catch {}
-    setCheckedStorage(true)
-  }, [])
+    if (!loading && !supplier) router.replace('/supplier-portal/login')
+  }, [loading, supplier, router])
 
-  const handleLogin = (s: Supplier) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-    setSupplier(s)
-  }
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEY)
-    setSupplier(null)
-  }
-
-  if (!checkedStorage) return null
+  if (loading || !supplier) return null
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg, #F7F7FA)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        padding: '16px 20px', background: 'var(--card, #fff)', borderBottom: '1px solid var(--border, #eee)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Truck size={22} color="var(--primary, #C9A24B)" />
-          <div style={{ fontWeight: 800, fontSize: 16 }}>بوابة الموردين</div>
-        </div>
-        {supplier && (
-          <button className="btn btn-ghost" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <LogOut size={16} /> تسجيل الخروج
-          </button>
-        )}
-      </div>
-
+      <HeaderBar supplier={supplier} logout={logout} />
       <div style={{ flex: 1, padding: '24px 16px', maxWidth: 640, margin: '0 auto', width: '100%' }}>
-        {supplier ? <SupplierDashboard supplier={supplier} /> : <SupplierLogin onLogin={handleLogin} />}
+        <SupplierDashboard supplier={supplier} />
       </div>
     </div>
   )
 }
 
-function SupplierLogin({ onLogin }: { onLogin: (s: Supplier) => void }) {
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    if (!phone || !password) return
-    setLoading(true)
-    try {
-      const res = await fetch('/api/supplier-auth/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error || 'حدث خطأ'); return }
-      onLogin(data.supplier)
-    } catch {
-      setError('تعذر الاتصال بالخادم')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+function HeaderBar({ supplier, logout }: { supplier: { name_ar: string }; logout: () => void }) {
   return (
-    <div className="card" style={{ padding: 28, marginTop: 40 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px' }}>تسجيل دخول المورد</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 20px' }}>
-        استخدم رقم الجوال وكلمة المرور المسجلة لدى الصالون
-      </p>
-      <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-        <div>
-          <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-            <Phone size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> رقم الجوال
-          </label>
-          <input className="input-field" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XXXXXXXX" />
-        </div>
-        <div>
-          <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-            <KeyRound size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> كلمة المرور
-          </label>
-          <input type="password" className="input-field" value={password} onChange={e => setPassword(e.target.value)} />
-        </div>
-        {error && <div style={{ color: '#EF4444', fontSize: 13 }}>{error}</div>}
-        <button type="submit" className="btn btn-primary" disabled={loading || !phone || !password}>
-          {loading ? <Loader2 size={16} className="spin" /> : 'دخول'}
+    <div style={{
+      padding: '16px 20px', background: 'var(--card, #fff)', borderBottom: '1px solid var(--border, #eee)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Truck size={22} color="var(--primary, #C9A24B)" />
+        <div style={{ fontWeight: 800, fontSize: 16 }}>بوابة الموردين</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{supplier.name_ar}</span>
+        <button className="btn btn-ghost" onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <LogOut size={16} /> تسجيل الخروج
         </button>
-      </form>
+      </div>
     </div>
   )
 }
 
-function SupplierDashboard({ supplier }: { supplier: Supplier }) {
+function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: string; name_en?: string; phone: string; email?: string } }) {
   const [branches, setBranches] = useState<any[]>([])
   const [visits, setVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -175,14 +112,43 @@ function SupplierDashboard({ supplier }: { supplier: Supplier }) {
 
   return (
     <div>
-      <div className="card" style={{ padding: 20, marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 17 }}>{supplier.name_ar}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{supplier.phone}</div>
+      {/* Supplier Info Card */}
+      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: '50%',
+            background: 'var(--primary-50)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Truck size={28} color="var(--primary)" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>{supplier.name_ar}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+              <Phone size={12} /> {supplier.phone}
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowBook(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+            <CalendarPlus size={16} /> طلب زيارة جديدة
+          </button>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowBook(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <CalendarPlus size={16} /> طلب زيارة جديدة
-        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+        <StatCard
+          icon={<CalendarPlus size={18} />}
+          label="إجمالي الزيارات"
+          value={visits.length}
+          color="#6366F1"
+        />
+        <StatCard
+          icon={<Clock size={18} />}
+          label="قيد الانتظار"
+          value={visits.filter(v => v.status === 'pending').length}
+          color="#F59E0B"
+        />
       </div>
 
       {message && (
@@ -191,6 +157,7 @@ function SupplierDashboard({ supplier }: { supplier: Supplier }) {
         </div>
       )}
 
+      {/* Book Visit Modal */}
       {showBook && (
         <div className="modal-overlay" onClick={() => setShowBook(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
@@ -240,21 +207,41 @@ function SupplierDashboard({ supplier }: { supplier: Supplier }) {
         </div>
       )}
 
-      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>طلبات الزيارة السابقة</h2>
+      {/* Visit History */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>طلبات الزيارة السابقة</h2>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{visits.length} طلب</span>
+      </div>
       <div style={{ display: 'grid', gap: 10 }}>
         {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>جاري التحميل...</div>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
+            <Loader2 size={24} className="spin" style={{ margin: '0 auto 12px' }} />
+            جاري التحميل...
+          </div>
         ) : visits.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>لا توجد طلبات زيارة بعد</div>
+          <div style={{
+            textAlign: 'center', color: 'var(--text-muted)', padding: 40,
+            background: 'var(--card)', borderRadius: 12
+          }}>
+            <CalendarPlus size={32} style={{ opacity: 0.3, margin: '0 auto 8px' }} />
+            لا توجد طلبات زيارة بعد
+          </div>
         ) : visits.map((v: any) => (
-          <div key={v.id} className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div key={v.id} className="card" style={{
+            padding: 16, display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: 12
+          }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14 }}>
                 {v.visit_date} — {v.visit_time}
                 {v.branch_name && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}> · {v.branch_name}</span>}
               </div>
               {v.purpose && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{v.purpose}</div>}
-              {v.admin_notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>ملاحظة الإدارة: {v.admin_notes}</div>}
+              {v.admin_notes && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  ملاحظة الإدارة: {v.admin_notes}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span className="badge" style={{ background: `${STATUS_COLOR[v.status]}20`, color: STATUS_COLOR[v.status] }}>
@@ -268,6 +255,24 @@ function SupplierDashboard({ supplier }: { supplier: Supplier }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
+  return (
+    <div className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12,
+        background: `${color}18`, display: 'flex',
+        alignItems: 'center', justifyContent: 'center', color, flexShrink: 0
+      }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>{value}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</div>
       </div>
     </div>
   )

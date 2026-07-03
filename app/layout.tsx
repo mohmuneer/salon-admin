@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import PortalHeader from '@/components/PortalHeader'
 import QueryProvider from '@/components/QueryProvider'
+import { SupplierAuthProvider } from '@/components/SupplierAuthContext'
 import { Lang } from '@/lib/translations'
 
 export const LangContext = createContext<{
@@ -66,7 +67,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { closeSidebar() }, [pathname])
 
-  if (isFullPage || isPublic) return <>{children}</>
+  if (isFullPage || isPublic) return <SupplierAuthProvider>{children}</SupplierAuthProvider>
 
   if (isPortal) {
     return (
