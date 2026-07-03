@@ -19,6 +19,7 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
+  const [passwordOnly, setPasswordOnly] = useState(false)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [branchFilter, setBranchFilter] = useState('')
@@ -45,6 +46,18 @@ export default function StaffPage() {
 
   const openEdit = (s: any) => {
     setEditingId(s.id)
+    setPasswordOnly(false)
+    setEditForm({
+      id: s.id, name: s.name, phone: s.phone, email: s.email,
+      salon_id: s.salon_id || '', department_id: s.department_id || '',
+      specialty: s.specialty, gender_served: s.gender_served,
+      rating: s.rating, gender: s.gender, bio: s.bio || '', password: '',
+    })
+  }
+
+  const openPasswordModal = (s: any) => {
+    setEditingId(s.id)
+    setPasswordOnly(true)
     setEditForm({
       id: s.id, name: s.name, phone: s.phone, email: s.email,
       salon_id: s.salon_id || '', department_id: s.department_id || '',
@@ -57,6 +70,7 @@ export default function StaffPage() {
     setSaving(true)
     await fetch('/api/staff', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(editForm) })
     setEditingId(null)
+    setPasswordOnly(false)
     setSaving(false)
     load()
   }
@@ -192,6 +206,18 @@ export default function StaffPage() {
                   <Pencil size={15} />
                 </button>
                 <button
+                  onClick={() => openPasswordModal(s)}
+                  style={{
+                    width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)',
+                    background: 'var(--card)', cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    color: '#8B5CF6', transition: 'all 0.15s',
+                  }}
+                  title={isAr ? 'تغيير كلمة المرور' : 'Change Password'}
+                >
+                  <KeyRound size={15} />
+                </button>
+                <button
                   onClick={() => toggle(s.id, s.is_active)}
                   style={{
                     width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)',
@@ -254,13 +280,33 @@ export default function StaffPage() {
           }} onClick={e => e.stopPropagation()}>
             <div className="card-header">
               <h2 style={{ fontSize: 16, fontWeight: 700, display:'flex', alignItems:'center', gap: 8, color:'var(--text)' }}>
-                <Pencil size={16} style={{ color:'var(--primary)' }} />
-                {isAr ? 'تعديل بيانات الموظف' : 'Edit Employee'}
+                {passwordOnly ? <KeyRound size={16} style={{ color:'#8B5CF6' }} /> : <Pencil size={16} style={{ color:'var(--primary)' }} />}
+                {passwordOnly ? (isAr ? 'تغيير كلمة المرور' : 'Change Password') : (isAr ? 'تعديل بيانات الموظف' : 'Edit Employee')}
               </h2>
               <button onClick={() => setEditingId(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding: 4 }}>
                 <X size={18} />
               </button>
             </div>
+            {passwordOnly ? (
+              <div className="card-body">
+                <p style={{ fontSize: 13, color:'var(--text-secondary)', margin:'0 0 14px' }}>
+                  {isAr ? 'تعيين كلمة مرور جديدة لـ' : 'Set a new password for'} <strong>{editForm.name}</strong>
+                </p>
+                <label style={{ fontSize: 12, color:'var(--text-secondary)', display:'block', marginBottom: 4, fontWeight: 500 }}>
+                  <KeyRound size={12} style={{ marginInlineEnd: 4 }} />
+                  {isAr ? 'كلمة المرور الجديدة' : 'New Password'}
+                </label>
+                <input className="input-field" type="password" value={editForm.password||''} onChange={e => setEditForm({...editForm, password:e.target.value})}
+                  placeholder={isAr ? 'أدخل كلمة المرور الجديدة' : 'Enter new password'} autoFocus />
+                <div style={{ display:'flex', gap: 10, justifyContent:'flex-end', marginTop: 20, paddingTop: 18, borderTop:'1px solid var(--border)' }}>
+                  <button className="btn btn-ghost" onClick={() => setEditingId(null)}>{tr.cancel}</button>
+                  <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={saving || !editForm.password}>
+                    <Check size={16} />
+                    {saving ? (isAr ? 'حفظ...' : 'Saving...') : (isAr ? 'حفظ' : 'Save')}
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="card-body">
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
                 <div>
@@ -359,6 +405,7 @@ export default function StaffPage() {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}
