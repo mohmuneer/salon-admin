@@ -217,7 +217,7 @@ export default function SupplierCatalogPage() {
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                       <Package size={13} style={{ marginInlineEnd: 4 }} />{isAr ? 'الصنف' : 'Product'} *
                     </label>
-                    <select className="input-field" value={form.product_id} disabled={!!form.id} onChange={e => setForm({ ...form, product_id: e.target.value })}>
+                    <select className="input-field" value={form.product_id} onChange={e => setForm({ ...form, product_id: e.target.value })}>
                       <option value="">{isAr ? 'اختر الصنف' : 'Select product'}</option>
                       {products.map((p: any) => (
                         <option key={p.id} value={p.id}>{p.name_ar}</option>

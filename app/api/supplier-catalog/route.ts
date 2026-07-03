@@ -102,6 +102,9 @@ export async function PUT(req: NextRequest) {
   } catch (err: any) {
     await client.query('ROLLBACK')
     console.error('Supplier catalog PUT error:', err)
+    if (err.code === '23505' && err.constraint === 'supplier_products_supplier_id_product_id_key') {
+      return NextResponse.json({ error: 'هذا المورد مرتبط بالفعل بهذا الصنف' }, { status: 409 })
+    }
     return NextResponse.json({ error: err.message || 'DB error' }, { status: 500 })
   } finally {
     client.release()
