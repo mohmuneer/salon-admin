@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import pool from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
 export async function GET() {
   try {
@@ -23,16 +24,24 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const { id, name, phone, email, specialty, gender_served, rating, gender, bio, salon_id, department_id } = await req.json()
+  const { id, name, phone, email, specialty, gender_served, rating, gender, bio, salon_id, department_id, password } = await req.json()
   try {
     await pool.query(
       'UPDATE staff SET salon_id=$1, department_id=$2, specialty=$3, gender_served=$4, rating=$5, bio=$6 WHERE id=$7',
       [salon_id, department_id || null, specialty, gender_served, rating, bio || null, id]
     )
-    await pool.query(
-      'UPDATE users SET name=$1, phone=$2, email=$3, gender=$4 WHERE id=(SELECT user_id FROM staff WHERE id=$5)',
-      [name, phone, email, gender, id]
-    )
+    if (password) {
+      const passwordHash = await bcrypt.hash(password, 10)
+      await pool.query(
+        'UPDATE users SET name=$1, phone=$2, email=$3, gender=$4, password_hash=$5 WHERE id=(SELECT user_id FROM staff WHERE id=$6)',
+        [name, phone, email || null, gender, passwordHash, id]
+      )
+    } else {
+      await pool.query(
+        'UPDATE users SET name=$1, phone=$2, email=$3, gender=$4 WHERE id=(SELECT user_id FROM staff WHERE id=$5)',
+        [name, phone, email || null, gender, id]
+      )
+    }
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error(err)
@@ -42,20 +51,30 @@ export async function PUT(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const { name, phone, email, password, gender, specialty, gender_served, bio, salon_id, department_id } = await req.json()
+  if (!name || !phone || !password || !salon_id) {
+    return NextResponse.json({ error: 'الاسم ورقم الجوال وكلمة المرور والفرع إجبارية' }, { status: 400 })
+  }
+  const client = await pool.connect()
   try {
-    const userResult = await pool.query(
-      `INSERT INTO users (name, phone, email, password, gender, role) VALUES ($1,$2,$3,$4,$5,'staff') RETURNING id`,
-      [name, phone, email, password, gender]
+    await client.query('BEGIN')
+    const passwordHash = await bcrypt.hash(password, 10)
+    const userResult = await client.query(
+      `INSERT INTO users (name, phone, email, password_hash, gender, role) VALUES ($1,$2,$3,$4,$5,'staff') RETURNING id`,
+      [name, phone, email || null, passwordHash, gender]
     )
     const userId = userResult.rows[0].id
-    await pool.query(
+    await client.query(
       `INSERT INTO staff (user_id, salon_id, department_id, specialty, gender_served, bio, is_active) VALUES ($1,$2,$3,$4,$5,$6,true)`,
-      [userId, salon_id, department_id || null, specialty || null, gender_served || 'both', bio || null]
+      [userId, salon_id, department_id || null, specialty || '', gender_served || 'both', bio || null]
     )
+    await client.query('COMMIT')
     return NextResponse.json({ ok: true, userId })
   } catch (err) {
+    await client.query('ROLLBACK')
     console.error(err)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
+  } finally {
+    client.release()
   }
 }
 

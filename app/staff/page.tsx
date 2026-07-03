@@ -4,7 +4,7 @@ import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
   Star, UserCheck, UserX, Pencil, Trash2, X, Check,
-  Phone, Mail, Scissors, Users, Building2, Layers, Search,
+  Phone, Mail, Scissors, Users, Building2, Layers, Search, KeyRound,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 import Link from 'next/link'
@@ -49,7 +49,7 @@ export default function StaffPage() {
       id: s.id, name: s.name, phone: s.phone, email: s.email,
       salon_id: s.salon_id || '', department_id: s.department_id || '',
       specialty: s.specialty, gender_served: s.gender_served,
-      rating: s.rating, gender: s.gender, bio: s.bio || '',
+      rating: s.rating, gender: s.gender, bio: s.bio || '', password: '',
     })
   }
 
@@ -324,6 +324,14 @@ export default function StaffPage() {
                   </select>
                 </div>
                 <div>
+                  <label style={{ fontSize: 12, color:'var(--text-secondary)', display:'block', marginBottom: 4, fontWeight: 500 }}>
+                    <KeyRound size={12} style={{ marginInlineEnd: 4 }} />
+                    {isAr ? 'كلمة المرور' : 'Password'}
+                  </label>
+                  <input className="input-field" type="password" value={editForm.password||''} onChange={e => setEditForm({...editForm, password:e.target.value})}
+                    placeholder={isAr ? 'اتركه فارغاً لعدم التغيير' : 'Leave blank to keep unchanged'} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: 12, color:'var(--text-secondary)', display:'block', marginBottom: 4, fontWeight: 500 }}>{isAr ? 'نبذة' : 'Bio'}</label>
                   <input className="input-field" value={editForm.bio||''} onChange={e => setEditForm({...editForm, bio:e.target.value})} />
                 </div>

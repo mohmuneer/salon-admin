@@ -34,8 +34,8 @@ export default function AddStaffPage() {
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }))
 
   const save = async () => {
-    if (!form.name || !form.phone || !form.password) {
-      setError(isAr ? 'الاسم ورقم الجوال وكلمة المرور إجبارية' : 'Name, phone & password are required')
+    if (!form.name || !form.phone || !form.password || !form.salon_id) {
+      setError(isAr ? 'الاسم ورقم الجوال وكلمة المرور والفرع إجبارية' : 'Name, phone, password & branch are required')
       return
     }
     setSaving(true); setError('')
