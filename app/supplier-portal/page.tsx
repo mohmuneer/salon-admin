@@ -1,7 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Truck, LogOut, CalendarPlus, Building2, Clock, MessageSquare, X, Loader2, Phone, Package, Eye, Paperclip, FileText } from 'lucide-react'
+import {
+  Truck, LogOut, CalendarPlus, Building2, Clock, MessageSquare, X, Loader2, Phone, Package, Paperclip, FileText,
+  LayoutGrid, BarChart3, Settings as SettingsIcon, Warehouse, Layers, Mail, KeyRound, Check, Palette,
+} from 'lucide-react'
 import { useSupplierAuth } from '@/components/SupplierAuthContext'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -19,21 +22,60 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: '#9CA3AF',
 }
 
+const THEMES: { key: string; label: string; color: string }[] = [
+  { key: 'gold', label: 'ذهبي', color: '#C9A24B' },
+  { key: 'light', label: 'فاتح', color: '#2563EB' },
+  { key: 'dark', label: 'داكن', color: '#111827' },
+  { key: 'blue', label: 'أزرق', color: '#2563EB' },
+  { key: 'emerald', label: 'زمردي', color: '#059669' },
+  { key: 'rose', label: 'وردي', color: '#BE185D' },
+]
+
+type Tab = 'overview' | 'stats' | 'settings'
+
 export default function SupplierDashboardPage() {
   const router = useRouter()
   const { supplier, loading, logout } = useSupplierAuth()
+  const [profile, setProfile] = useState<any>(null)
+  const [theme, setTheme] = useState('gold')
+  const [tab, setTab] = useState<Tab>('overview')
 
   useEffect(() => {
     if (!loading && !supplier) router.replace('/supplier-portal/login')
   }, [loading, supplier, router])
 
+  const loadProfile = () => {
+    if (!supplier) return
+    fetch(`/api/public-supplier-profile?id=${supplier.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setProfile(data)
+          if (data.theme) setTheme(data.theme)
+        }
+      })
+      .catch(() => {})
+  }
+
+  useEffect(() => { loadProfile() }, [supplier?.id])
+
   if (loading || !supplier) return null
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg, #F7F7FA)', display: 'flex', flexDirection: 'column' }}>
+    <div data-theme={theme} style={{ minHeight: '100vh', background: 'var(--bg, #F7F7FA)', display: 'flex', flexDirection: 'column' }}>
       <HeaderBar supplier={supplier} logout={logout} />
+      <TabBar tab={tab} setTab={setTab} />
       <div style={{ flex: 1, padding: '24px 16px', maxWidth: 640, margin: '0 auto', width: '100%' }}>
-        <SupplierDashboard supplier={supplier} />
+        {tab === 'overview' && <OverviewTab supplier={supplier} />}
+        {tab === 'stats' && <StatsTab profile={profile} />}
+        {tab === 'settings' && (
+          <SettingsTab
+            supplier={supplier}
+            profile={profile}
+            theme={theme}
+            onSaved={updated => { setProfile((p: any) => ({ ...p, ...updated })); if (updated.theme) setTheme(updated.theme) }}
+          />
+        )}
       </div>
     </div>
   )
@@ -59,7 +101,30 @@ function HeaderBar({ supplier, logout }: { supplier: { name_ar: string }; logout
   )
 }
 
-function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: string; name_en?: string; phone: string; email?: string } }) {
+function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: 'overview', label: 'نظرة عامة', icon: <LayoutGrid size={15} /> },
+    { key: 'stats', label: 'الإحصائيات', icon: <BarChart3 size={15} /> },
+    { key: 'settings', label: 'الإعدادات', icon: <SettingsIcon size={15} /> },
+  ]
+  return (
+    <div style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)', padding: '0 16px', display: 'flex', gap: 4, maxWidth: 640, margin: '0 auto', width: '100%' }}>
+      {tabs.map(t => (
+        <button key={t.key} onClick={() => setTab(t.key)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '12px 14px', border: 'none', background: 'none',
+            cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: tab === t.key ? 700 : 500,
+            color: tab === t.key ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: tab === t.key ? '2px solid var(--primary)' : '2px solid transparent',
+          }}>
+          {t.icon} {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function OverviewTab({ supplier }: { supplier: { id: string; name_ar: string; name_en?: string; phone: string; email?: string } }) {
   const [branches, setBranches] = useState<any[]>([])
   const [visits, setVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -304,6 +369,201 @@ function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: stri
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function StatsTab({ profile }: { profile: any }) {
+  if (!profile) {
+    return (
+      <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
+        <Loader2 size={24} className="spin" style={{ margin: '0 auto 12px' }} />
+        جاري التحميل...
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {profile.group_name_ar && (
+        <div className="card" style={{ padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Layers size={18} color="var(--primary)" />
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>مجموعة الموردين</div>
+            <div style={{ fontWeight: 700 }}>{profile.group_name_ar}</div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
+        <StatCard icon={<Package size={18} />} label="الأصناف الموردة" value={profile.products?.length || 0} color="#8B5CF6" />
+        <StatCard icon={<Warehouse size={18} />} label="المخازن" value={profile.warehouses?.length || 0} color="#0EA5E9" />
+        <StatCard icon={<Building2 size={18} />} label="الفروع" value={profile.branches?.length || 0} color="#10B981" />
+      </div>
+
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>الأصناف الموردة</h2>
+      <div className="card" style={{ marginBottom: 20 }}>
+        {(profile.products || []).length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>لا توجد أصناف مرتبطة بعد</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 0 }}>
+            {profile.products.map((p: any, i: number) => (
+              <div key={p.id} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><Package size={13} color="var(--text-muted)" />{p.name_ar}</span>
+                {p.group_name_ar && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.group_name_ar}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>المخازن التي تخزن أصنافك</h2>
+      <div className="card" style={{ marginBottom: 20 }}>
+        {(profile.warehouses || []).length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>لا توجد مخازن مرتبطة بعد</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 0 }}>
+            {profile.warehouses.map((w: any, i: number) => (
+              <div key={w.id} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><Warehouse size={13} color="var(--text-muted)" />{w.name_ar}</span>
+                {w.warehouse_group_name && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{w.warehouse_group_name}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>الفروع المخدومة</h2>
+      <div className="card">
+        {(profile.branches || []).length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>لا توجد فروع مرتبطة بعد</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 0 }}>
+            {profile.branches.map((b: any, i: number) => (
+              <div key={b.id} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 6, borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                <Building2 size={13} color="var(--text-muted)" />
+                <span style={{ fontSize: 13 }}>{b.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SettingsTab({ supplier, profile, theme, onSaved }: { supplier: { id: string }; profile: any; theme: string; onSaved: (u: any) => void }) {
+  const [form, setForm] = useState({ name_ar: '', name_en: '', email: '', currentPassword: '', newPassword: '' })
+  const [selectedTheme, setSelectedTheme] = useState(theme)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (profile) {
+      setForm(f => ({ ...f, name_ar: profile.name_ar || '', name_en: profile.name_en || '', email: profile.email || '' }))
+    }
+  }, [profile])
+
+  useEffect(() => { setSelectedTheme(theme) }, [theme])
+
+  const saveAccount = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setMessage('')
+    if (!form.name_ar) { setError('اسم المورد مطلوب'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/public-supplier-account', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: supplier.id, name_ar: form.name_ar, name_en: form.name_en, email: form.email,
+          currentPassword: form.currentPassword || undefined, newPassword: form.newPassword || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'حدث خطأ'); return }
+      onSaved(data.supplier)
+      setForm(f => ({ ...f, currentPassword: '', newPassword: '' }))
+      setMessage('تم حفظ بيانات الحساب')
+      setTimeout(() => setMessage(''), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveTheme = async (key: string) => {
+    setSelectedTheme(key)
+    const res = await fetch('/api/public-supplier-account', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: supplier.id, name_ar: form.name_ar || profile?.name_ar, theme: key }),
+    })
+    const data = await res.json()
+    if (res.ok) onSaved(data.supplier)
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>
+        <Palette size={16} style={{ verticalAlign: 'middle', marginInlineEnd: 6 }} /> ثيم بوابة المورد
+      </h2>
+      <div className="card" style={{ padding: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {THEMES.map(t => (
+            <button key={t.key} onClick={() => saveTheme(t.key)} type="button"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer',
+                background: 'none', border: 'none', fontFamily: 'inherit',
+              }}>
+              <span style={{
+                width: 36, height: 36, borderRadius: '50%', background: t.color,
+                border: selectedTheme === t.key ? '3px solid var(--text)' : '3px solid transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {selectedTheme === t.key && <Check size={16} color="white" />}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>بيانات الحساب</h2>
+      <form className="card" onSubmit={saveAccount} style={{ padding: 20 }}>
+        <div style={{ display: 'grid', gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>اسم المورد (عربي) *</label>
+            <input className="input-field" value={form.name_ar} onChange={e => setForm({ ...form, name_ar: e.target.value })} />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>اسم المورد (إنجليزي)</label>
+            <input className="input-field" value={form.name_en} onChange={e => setForm({ ...form, name_en: e.target.value })} />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+              <Mail size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> البريد الإلكتروني
+            </label>
+            <input className="input-field" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4 }}>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+              <KeyRound size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> كلمة المرور الحالية
+            </label>
+            <input type="password" className="input-field" value={form.currentPassword} onChange={e => setForm({ ...form, currentPassword: e.target.value })}
+              placeholder="مطلوبة فقط عند تغيير كلمة المرور" />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>كلمة المرور الجديدة</label>
+            <input type="password" className="input-field" value={form.newPassword} onChange={e => setForm({ ...form, newPassword: e.target.value })}
+              placeholder="اتركها فارغة لعدم التغيير" />
+          </div>
+          {error && <div style={{ color: '#EF4444', fontSize: 13 }}>{error}</div>}
+          {message && <div style={{ color: '#10B981', fontSize: 13 }}>{message}</div>}
+          <button type="submit" className="btn btn-primary" disabled={saving} style={{ justifySelf: 'start' }}>
+            {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
