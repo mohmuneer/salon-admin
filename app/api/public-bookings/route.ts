@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
     const {
-      serviceId, date, time, customerName, customerPhone, price: clientPrice,
+      serviceId, date, time, customerName, customerPhone,
       staffId: selectedStaffId, branchId: selectedBranchId, sessionProductIds,
     } = body
 
@@ -77,12 +77,18 @@ export async function POST(req: Request) {
       }
     }
 
-    /* ── 5. Service duration + price ── */
+    /* ── 5. Service duration + price ──
+       Price always comes from the DB, never from the client - clientPrice is
+       accepted in the request body but intentionally unused, so a tampered
+       request can't book a service for less than its real price. */
     const svcInfo = await pool.query(
       'SELECT duration_min, price FROM services WHERE id = $1', [resolvedServiceId]
     ).catch(() => ({ rows: [] }))
-    const durationMin = svcInfo.rows[0]?.duration_min || 60
-    const price       = clientPrice || svcInfo.rows[0]?.price || 0
+    if (svcInfo.rows.length === 0) {
+      return NextResponse.json({ error: 'الخدمة غير موجودة' }, { status: 400 })
+    }
+    const durationMin = svcInfo.rows[0].duration_min || 60
+    const price       = svcInfo.rows[0].price || 0
 
     const [h, m] = time.split(':').map(Number)
     const endMin  = h * 60 + m + durationMin

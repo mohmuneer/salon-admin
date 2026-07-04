@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { Eye, Check, X, RefreshCw, FileText, CreditCard, Search, ChevronDown } from 'lucide-react'
+import { Eye, Check, X, RefreshCw, FileText, CreditCard, Search, ChevronDown, AlertTriangle } from 'lucide-react'
 
 type Status = 'all' | 'pending' | 'verified' | 'rejected'
 type PaymentReceipt = {
@@ -11,10 +11,14 @@ type PaymentReceipt = {
   customer_phone: string
   receipt_url: string
   amount: number
+  expected_amount: number | null
   payment_method: string
   status: 'pending' | 'verified' | 'rejected'
   notes: string
   created_at: string
+  verified_by: string | null
+  verified_by_name: string | null
+  verified_at: string | null
 }
 
 const STATUS_LABEL: Record<string, string> = { pending: 'معلق', verified: 'موثق', rejected: 'مرفوض' }
@@ -152,8 +156,20 @@ export default function PaymentsPage() {
                     </td>
                     <td style={{ fontWeight: 600 }}>{row.customer_name || '—'}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }} dir="ltr">{row.customer_phone || '—'}</td>
-                    <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                      {Number(row.amount).toLocaleString()} ر.س
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                        {Number(row.amount).toLocaleString()} ر.س
+                      </div>
+                      {row.expected_amount != null && (
+                        Number(row.expected_amount) !== Number(row.amount) ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#EF4444', marginTop: 2, fontWeight: 600 }}>
+                            <AlertTriangle size={11} />
+                            المطلوب فعلياً: {Number(row.expected_amount).toLocaleString()} ر.س
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>يطابق قيمة الطلب</div>
+                        )
+                      )}
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                       {row.payment_method === 'bank_transfer' ? 'حوالة بنكية' : row.payment_method === 'direct_debit' ? 'خصم من حساب' : row.payment_method}
@@ -166,6 +182,11 @@ export default function PaymentsPage() {
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[row.status] }} />
                         {STATUS_LABEL[row.status]}
                       </span>
+                      {row.verified_by_name && row.verified_at && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                          بواسطة {row.verified_by_name} — {new Date(row.verified_at).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <button onClick={() => setPreview(row.receipt_url)}

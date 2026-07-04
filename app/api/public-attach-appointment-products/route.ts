@@ -15,9 +15,14 @@ export async function POST(req: Request) {
       let sum = 0
       for (const it of items) {
         const productId = it.productId || it.product_id
-        const qty = Number(it.qty || it.quantity) || 1
-        const price = Number(it.priceSar ?? it.price) || 0
+        const qty = Math.max(1, Math.floor(Number(it.qty || it.quantity) || 1))
         if (!productId) continue
+        // Price always comes from the DB, never from the client.
+        const prod = await client.query(
+          'SELECT price FROM products WHERE id = $1 AND is_active = true', [productId]
+        )
+        if (prod.rows.length === 0) continue
+        const price = Number(prod.rows[0].price) || 0
         await client.query(
           `INSERT INTO appointment_products (appointment_id, product_id, qty, unit_price, type)
            VALUES ($1, $2, $3, $4, 'optional')`,

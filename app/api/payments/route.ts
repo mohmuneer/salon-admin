@@ -1,29 +1,16 @@
 import { NextResponse, NextRequest } from 'next/server'
 import pool from '@/lib/db'
-
-async function ensureTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS payment_receipts (
-      id               SERIAL PRIMARY KEY,
-      order_id         TEXT,
-      appointment_ids  TEXT[],
-      customer_name    TEXT NOT NULL DEFAULT '',
-      customer_phone   TEXT NOT NULL DEFAULT '',
-      receipt_url      TEXT NOT NULL,
-      amount           NUMERIC DEFAULT 0,
-      payment_method   TEXT DEFAULT 'bank_transfer',
-      status           TEXT DEFAULT 'pending',
-      notes            TEXT DEFAULT '',
-      created_at       TIMESTAMP DEFAULT NOW()
-    )
-  `)
-}
+import { auth } from '@/lib/auth'
 
 export async function GET() {
   try {
-    await ensureTable()
     const result = await pool.query(
-      `SELECT * FROM payment_receipts ORDER BY created_at DESC LIMIT 200`
+      `SELECT pr.id, pr.order_id, pr.appointment_ids, pr.customer_name, pr.customer_phone, pr.receipt_url,
+              pr.amount, pr.expected_amount, pr.payment_method, pr.status, pr.notes, pr.created_at,
+              pr.verified_by, pr.verified_at, u.name AS verified_by_name
+       FROM payment_receipts pr
+       LEFT JOIN users u ON u.id = pr.verified_by
+       ORDER BY pr.created_at DESC LIMIT 200`
     )
     return NextResponse.json(result.rows)
   } catch (err: any) {
@@ -34,7 +21,6 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
-    await ensureTable()
     const { id, status, notes } = await req.json()
     if (!id) return NextResponse.json({ error: 'id مطلوب' }, { status: 400 })
 
@@ -43,13 +29,19 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'حالة غير صالحة' }, { status: 400 })
     }
 
+    const session = await auth()
+    const adminId = (session?.user as any)?.id || null
+    const isDecision = status === 'verified' || status === 'rejected'
+
     // Update receipt status
     await pool.query(
       `UPDATE payment_receipts SET
-        status = COALESCE($1, status),
-        notes  = COALESCE($2, notes)
-       WHERE id = $3`,
-      [status ?? null, notes ?? null, id]
+        status      = COALESCE($1, status),
+        notes       = COALESCE($2, notes),
+        verified_by = CASE WHEN $3 THEN $4 ELSE verified_by END,
+        verified_at = CASE WHEN $3 THEN NOW() ELSE verified_at END
+       WHERE id = $5`,
+      [status ?? null, notes ?? null, isDecision, adminId, id]
     )
 
     // Propagate status to related orders, appointments, and payments table

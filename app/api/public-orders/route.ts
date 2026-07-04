@@ -3,10 +3,29 @@ import pool from '@/lib/db'
 
 export async function POST(req: Request) {
   try {
-    const { items, customerName, customerPhone, address, paymentMethod, totalSar, debitBank, debitAccount, debitHolder } = await req.json()
+    const { items, customerName, customerPhone, address, paymentMethod, debitBank, debitAccount, debitHolder } = await req.json()
 
     if (!items?.length || !customerName || !customerPhone) {
       return NextResponse.json({ error: 'جميع الحقول مطلوبة' }, { status: 400 })
+    }
+
+    /* ── Resolve real prices server-side ──
+       Never trust a price/total sent by the client - look up each product's
+       current price and build the order from that, so a tampered request
+       can't check out for less than the real total. */
+    const resolvedItems: { productId: string; qty: number; price: number }[] = []
+    for (const it of items) {
+      const productId = it.productId || it.product_id
+      const qty = Math.max(1, Math.floor(Number(it.qty || it.quantity) || 1))
+      if (!productId) continue
+      const prod = await pool.query(
+        'SELECT price FROM products WHERE id = $1 AND is_active = true', [productId]
+      ).catch(() => ({ rows: [] }))
+      if (prod.rows.length === 0) continue // skip products that don't exist or are inactive
+      resolvedItems.push({ productId, qty, price: Number(prod.rows[0].price) || 0 })
+    }
+    if (resolvedItems.length === 0) {
+      return NextResponse.json({ error: 'لا توجد منتجات صالحة في الطلب' }, { status: 400 })
     }
 
     // Get default salon
@@ -37,7 +56,7 @@ export async function POST(req: Request) {
       ? paymentMethod
       : 'cash'
 
-    const subtotal = Number(totalSar) || items.reduce((s: number, it: any) => s + (it.priceSar || it.price || 0) * (it.qty || it.quantity || 1), 0)
+    const subtotal = resolvedItems.reduce((s, it) => s + it.price * it.qty, 0)
 
     // Build notes including payment details
     let notes = `طلب عبر الموقع — ${customerName} — ${customerPhone}`
@@ -51,17 +70,13 @@ export async function POST(req: Request) {
       [customerId, salonId, subtotal, subtotal, address || '', validPayMethod, notes]
     )
 
-    // Insert order items
-    for (const it of items) {
-      const productId = it.productId || it.product_id
-      const qty       = it.qty || it.quantity || 1
-      const price     = it.priceSar || it.price || 0
-      if (productId) {
-        await pool.query(
-          `INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES ($1, $2, $3, $4, $5)`,
-          [result.rows[0].id, productId, qty, price, price * qty]
-        ).catch(() => {}) // skip if product doesn't exist
-      }
+    // Insert order items using the server-resolved prices
+    // (subtotal is a GENERATED ALWAYS column - must not be included here)
+    for (const it of resolvedItems) {
+      await pool.query(
+        `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES ($1, $2, $3, $4)`,
+        [result.rows[0].id, it.productId, it.qty, it.price]
+      )
     }
 
     return NextResponse.json({
