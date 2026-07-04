@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     }
 
     await ensureTable()
-    const result = await pool.query(
+    const receiptResult = await pool.query(
       `INSERT INTO payment_receipts
          (order_id, appointment_ids, customer_name, customer_phone, receipt_url, amount, payment_method)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -60,7 +60,27 @@ export async function POST(req: Request) {
       [order_id, appointment_ids, customer_name, customer_phone, receipt_url, amount, payment_method]
     )
 
-    return NextResponse.json({ ok: true, id: result.rows[0].id })
+    const receiptId = receiptResult.rows[0].id
+
+    // Also insert into payments table for linked appointments
+    for (const apptId of appointment_ids) {
+      await pool.query(
+        `INSERT INTO payments (source_type, source_id, amount, method, status, paid_at)
+         VALUES ('appointment', $1::uuid, $2, $3, 'pending', NOW())`,
+        [apptId, amount, payment_method]
+      ).catch(() => {})
+    }
+
+    // Also insert into payments table for linked order
+    if (order_id) {
+      await pool.query(
+        `INSERT INTO payments (source_type, source_id, amount, method, status, paid_at)
+         VALUES ('order', $1::uuid, $2, $3, 'pending', NOW())`,
+        [order_id, amount, payment_method]
+      ).catch(() => {})
+    }
+
+    return NextResponse.json({ ok: true, id: receiptId })
   } catch (err: any) {
     console.error('[public-transfer-receipt POST]', err.message)
     return NextResponse.json({ error: err.message || 'حدث خطأ في الرفع' }, { status: 500 })
