@@ -101,6 +101,7 @@ export default function SupplierCatalogPage() {
   const openAdd = () => {
     setForm({ ...EMPTY_FORM })
     setError('')
+    setGroupProductSearch('')
     setShowModal(true)
   }
 
@@ -115,6 +116,7 @@ export default function SupplierCatalogPage() {
       contract_start_date: e.contract_start_date || '', contract_end_date: e.contract_end_date || '',
     })
     setError('')
+    setGroupProductSearch('')
     setShowModal(true)
   }
 
@@ -301,16 +303,39 @@ export default function SupplierCatalogPage() {
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                       <Boxes size={13} style={{ marginInlineEnd: 4 }} />{isAr ? 'مجموعة الأصناف' : 'Product Group'} *
                     </label>
-                    <select className="input-field" value={form.group_id} onChange={e => setForm({ ...form, group_id: e.target.value })}>
+                    <select className="input-field" value={form.group_id} onChange={e => { setForm({ ...form, group_id: e.target.value }); setGroupProductSearch('') }}>
                       <option value="">{isAr ? 'اختر المجموعة' : 'Select group'}</option>
                       {productGroups.filter((g: any) => g.is_active).map((g: any) => (
                         <option key={g.id} value={g.id}>{isAr ? g.name_ar : (g.name_en || g.name_ar)}</option>
                       ))}
                     </select>
                     {form.group_id && (
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 0' }}>
-                        {isAr ? `سيتم ربط المورد بـ ${groupProductCount} صنف ضمن هذه المجموعة` : `This will link the supplier to ${groupProductCount} products in this group`}
-                      </p>
+                      <>
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 8px' }}>
+                          {isAr ? `سيتم ربط المورد بـ ${groupProductCount} صنف ضمن هذه المجموعة` : `This will link the supplier to ${groupProductCount} products in this group`}
+                        </p>
+                        <div style={{ position: 'relative', marginBottom: 6 }}>
+                          <Search size={13} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: 10, color: 'var(--text-muted)' }} />
+                          <input
+                            className="input-field"
+                            style={{ paddingInlineStart: 30, fontSize: 13, height: 32 }}
+                            placeholder={isAr ? 'بحث ضمن أصناف المجموعة...' : 'Search within group products...'}
+                            value={groupProductSearch}
+                            onChange={e => setGroupProductSearch(e.target.value)}
+                          />
+                        </div>
+                        <div style={{ border: '1px solid var(--border)', borderRadius: 10, maxHeight: 180, overflowY: 'auto', padding: 8 }}>
+                          {products
+                            .filter((p: any) => p.group_id === form.group_id)
+                            .filter((p: any) => !groupProductSearch.trim() || (p.name_ar || '').toLowerCase().includes(groupProductSearch.trim().toLowerCase()))
+                            .map((p: any) => (
+                              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 13 }}>
+                                <Package size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                                {p.name_ar}
+                              </div>
+                            ))}
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
