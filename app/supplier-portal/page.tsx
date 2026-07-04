@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   Truck, LogOut, CalendarPlus, Building2, Clock, MessageSquare, X, Loader2, Phone, Package, Paperclip, FileText,
   LayoutGrid, BarChart3, Settings as SettingsIcon, Warehouse, Layers, Mail, KeyRound, Check, Palette,
+  Search, ChevronRight, ChevronLeft, Star, TrendingUp,
 } from 'lucide-react'
 import { useSupplierAuth } from '@/components/SupplierAuthContext'
 
@@ -31,7 +32,7 @@ const THEMES: { key: string; label: string; color: string }[] = [
   { key: 'rose', label: 'وردي', color: '#BE185D' },
 ]
 
-type Tab = 'overview' | 'stats' | 'settings'
+type Tab = 'overview' | 'stats' | 'items' | 'settings'
 
 export default function SupplierDashboardPage() {
   const router = useRouter()
@@ -65,9 +66,10 @@ export default function SupplierDashboardPage() {
     <div data-theme={theme} style={{ minHeight: '100vh', background: 'var(--bg, #F7F7FA)', display: 'flex', flexDirection: 'column' }}>
       <HeaderBar supplier={supplier} logout={logout} />
       <TabBar tab={tab} setTab={setTab} />
-      <div style={{ flex: 1, padding: '24px 16px', maxWidth: 640, margin: '0 auto', width: '100%' }}>
+      <div style={{ flex: 1, padding: '24px 16px', maxWidth: 720, margin: '0 auto', width: '100%' }}>
         {tab === 'overview' && <OverviewTab supplier={supplier} />}
-        {tab === 'stats' && <StatsTab profile={profile} />}
+        {tab === 'stats' && <StatsTab profile={profile} goToItems={() => setTab('items')} />}
+        {tab === 'items' && <ItemsTab supplierId={supplier.id} />}
         {tab === 'settings' && (
           <SettingsTab
             supplier={supplier}
@@ -105,10 +107,11 @@ function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'نظرة عامة', icon: <LayoutGrid size={15} /> },
     { key: 'stats', label: 'الإحصائيات', icon: <BarChart3 size={15} /> },
+    { key: 'items', label: 'الأصناف', icon: <Package size={15} /> },
     { key: 'settings', label: 'الإعدادات', icon: <SettingsIcon size={15} /> },
   ]
   return (
-    <div style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)', padding: '0 16px', display: 'flex', gap: 4, maxWidth: 640, margin: '0 auto', width: '100%' }}>
+    <div style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)', padding: '0 16px', display: 'flex', gap: 4, maxWidth: 720, margin: '0 auto', width: '100%', overflowX: 'auto' }}>
       {tabs.map(t => (
         <button key={t.key} onClick={() => setTab(t.key)}
           style={{
@@ -373,7 +376,7 @@ function OverviewTab({ supplier }: { supplier: { id: string; name_ar: string; na
   )
 }
 
-function StatsTab({ profile }: { profile: any }) {
+function StatsTab({ profile, goToItems }: { profile: any; goToItems: () => void }) {
   if (!profile) {
     return (
       <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
@@ -396,25 +399,18 @@ function StatsTab({ profile }: { profile: any }) {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
-        <StatCard icon={<Package size={18} />} label="الأصناف الموردة" value={profile.products?.length || 0} color="#8B5CF6" />
+        <button type="button" title="عرض الأصناف الموردة" onClick={goToItems} style={{ display: 'block', textAlign: 'start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <StatCard icon={<Package size={18} />} label="الأصناف الموردة" value={profile.product_count || 0} color="#8B5CF6" />
+        </button>
         <StatCard icon={<Warehouse size={18} />} label="المخازن" value={profile.warehouses?.length || 0} color="#0EA5E9" />
         <StatCard icon={<Building2 size={18} />} label="الفروع" value={profile.branches?.length || 0} color="#10B981" />
       </div>
 
-      <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>الأصناف الموردة</h2>
-      <div className="card" style={{ marginBottom: 20 }}>
-        {(profile.products || []).length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>لا توجد أصناف مرتبطة بعد</div>
-        ) : (
-          <div style={{ display: 'grid', gap: 0 }}>
-            {profile.products.map((p: any, i: number) => (
-              <div key={p.id} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
-                <span style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><Package size={13} color="var(--text-muted)" />{p.name_ar}</span>
-                {p.group_name_ar && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.group_name_ar}</span>}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="card" style={{ padding: 16, marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          {profile.product_count || 0} صنف مرتبط — تفاصيل كل صنف، الكمية المباعة، وبيانات التوريد
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={goToItems}>عرض الأصناف</button>
       </div>
 
       <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>المخازن التي تخزن أصنافك</h2>
@@ -448,6 +444,113 @@ function StatsTab({ profile }: { profile: any }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+const PAGE_SIZE = 20
+
+function ItemsTab({ supplierId }: { supplierId: string }) {
+  const [items, setItems] = useState<any[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1) }, 350)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    setLoading(true)
+    const params = new URLSearchParams({ supplierId, page: String(page), pageSize: String(PAGE_SIZE) })
+    if (debouncedSearch) params.set('search', debouncedSearch)
+    fetch(`/api/public-supplier-items?${params}`)
+      .then(r => r.ok ? r.json() : { items: [], total: 0 })
+      .then(data => { setItems(data.items || []); setTotal(data.total || 0) })
+      .catch(() => { setItems([]); setTotal(0) })
+      .finally(() => setLoading(false))
+  }, [supplierId, page, debouncedSearch])
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  return (
+    <div>
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <Search size={15} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: 12, color: 'var(--text-muted)' }} />
+        <input
+          className="input-field"
+          style={{ paddingInlineStart: 36 }}
+          placeholder="ابحث عن صنف بالاسم..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+        {total} صنف {debouncedSearch && `— نتائج البحث عن "${debouncedSearch}"`}
+      </div>
+
+      <div className="card">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>بيانات المورد</th>
+                <th>السعر</th>
+                <th>الكمية المباعة</th>
+                <th>قيمة المبيعات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>جاري التحميل...</td></tr>
+              ) : items.length === 0 ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>لا توجد نتائج</td></tr>
+              ) : items.map((it: any) => (
+                <tr key={it.catalog_id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                      {it.is_default && <Star size={12} color="#F59E0B" fill="#F59E0B" />}
+                      {it.name_ar}
+                    </div>
+                    {it.group_name_ar && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{it.group_name_ar}</div>}
+                  </td>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {it.supplier_sku && <div>رقم الصنف: {it.supplier_sku}</div>}
+                    {it.supplier_item_name && <div>الاسم لديك: {it.supplier_item_name}</div>}
+                    {it.purchase_unit && <div>وحدة الشراء: {it.purchase_unit}</div>}
+                    {!it.supplier_sku && !it.supplier_item_name && !it.purchase_unit && '—'}
+                  </td>
+                  <td style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {it.price != null ? `${Number(it.price).toLocaleString()} ${it.currency_symbol || it.currency_code || ''}` : '—'}
+                  </td>
+                  <td>{Number(it.sold_qty).toLocaleString()}</td>
+                  <td style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                    <TrendingUp size={12} color="#10B981" />
+                    {Number(it.sold_revenue).toLocaleString()} ر.س
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+          <button type="button" title="الصفحة السابقة" className="btn btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+            <ChevronRight size={16} />
+          </button>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>صفحة {page} من {totalPages}</span>
+          <button type="button" title="الصفحة التالية" className="btn btn-icon" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+            <ChevronLeft size={16} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

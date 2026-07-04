@@ -20,18 +20,21 @@ export async function GET(req: NextRequest) {
     }
     const supplier = supplierRes.rows[0]
 
-    const productsRes = await pool.query(
-      `SELECT p.id, p.name_ar, p.group_id, pg.name_ar AS group_name_ar
-       FROM supplier_products sp
+    // Count + distinct group ids only - never load the full product list here,
+    // a supplier can have thousands of items (see /api/public-supplier-items
+    // for the paginated, searchable view of the actual items).
+    const countRes = await pool.query(
+      `SELECT COUNT(*) FROM supplier_products WHERE supplier_id = $1`, [id]
+    )
+    const productCount = Number(countRes.rows[0].count) || 0
+
+    const groupIdsRes = await pool.query(
+      `SELECT DISTINCT p.group_id FROM supplier_products sp
        JOIN products p ON p.id = sp.product_id
-       LEFT JOIN product_groups pg ON pg.id = p.group_id
-       WHERE sp.supplier_id = $1
-       ORDER BY p.name_ar`,
+       WHERE sp.supplier_id = $1 AND p.group_id IS NOT NULL`,
       [id]
     )
-    const products = productsRes.rows
-
-    const groupIds = [...new Set(products.map(p => p.group_id).filter(Boolean))]
+    const groupIds = groupIdsRes.rows.map(r => r.group_id)
 
     let warehouses: any[] = []
     let branches: any[] = []
@@ -61,7 +64,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ...supplier, products, warehouses, branches })
+    return NextResponse.json({ ...supplier, product_count: productCount, warehouses, branches })
   } catch (err: any) {
     console.error('[public-supplier-profile GET]', err.message)
     return NextResponse.json({ error: err.message || 'حدث خطأ' }, { status: 500 })
