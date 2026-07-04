@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import AddButton from '@/app/components/AddButton'
-import { Phone, Mail, UserCheck, UserX, ShieldCheck, Pencil, Trash2, X, Check } from 'lucide-react'
+import { Phone, Mail, UserCheck, UserX, ShieldCheck, Pencil, Trash2, X, Check, Search } from 'lucide-react'
 
 const initialForm = {
   name: '', phone: '', email: '', password: '', gender: 'male', role: 'staff',
@@ -20,6 +20,10 @@ export default function UsersPage() {
   const [form, setForm] = useState(initialForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'staff'>('all')
+  const [branchFilter, setBranchFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
   const load = () => {
     setLoading(true)
@@ -61,11 +65,65 @@ export default function UsersPage() {
     return tr.both
   }
 
+  const filtered = users.filter((u: any) => {
+    if (roleFilter !== 'all' && u.role !== roleFilter) return false
+    if (branchFilter && u.salon_id !== branchFilter) return false
+    if (statusFilter === 'active' && !u.is_active) return false
+    if (statusFilter === 'inactive' && u.is_active) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (
+        !(u.name || '').toLowerCase().includes(q) &&
+        !(u.phone || '').includes(q) &&
+        !(u.email || '').toLowerCase().includes(q) &&
+        !(u.specialty || '').toLowerCase().includes(q)
+      ) return false
+    }
+    return true
+  })
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1A1A2E' }}>{tr.users}</h1>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1A1A2E', margin: 0 }}>{tr.users}</h1>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+            {filtered.length === users.length
+              ? `${users.length} ${lang === 'ar' ? 'مستخدم' : 'users'}`
+              : `${filtered.length} / ${users.length} ${lang === 'ar' ? 'مستخدم' : 'users'}`}
+          </p>
+        </div>
         <AddButton onClick={() => setShowAdd(true)} label={lang==='ar'?'إضافة مستخدم':'Add User'} tooltip={lang==='ar'?'إضافة مستخدم جديد':'Add new user'} />
+      </div>
+
+      {/* Search & Filters */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="filter-bar" style={{ padding: '14px 18px' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+            <Search size={15} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: 12, color: 'var(--text-muted)' }} />
+            <input className="input-field" style={{ paddingInlineStart: 36 }}
+              placeholder={tr.search} value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <select className="input-field" style={{ width: 150 }} value={roleFilter} onChange={e => setRoleFilter(e.target.value as any)}>
+            <option value="all">{lang === 'ar' ? 'كل الأدوار' : 'All Roles'}</option>
+            <option value="admin">{tr.roleAdmin}</option>
+            <option value="staff">{tr.roleStaff}</option>
+          </select>
+          <select className="input-field" style={{ width: 160 }} value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+            <option value="">{lang === 'ar' ? 'كل الفروع' : 'All Branches'}</option>
+            {branches.map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {(['all', 'active', 'inactive'] as const).map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={statusFilter === s ? 'btn btn-tab active' : 'btn btn-tab'}>
+                {s === 'all' ? (lang === 'ar' ? 'الكل' : 'All') : s === 'active' ? tr.active : tr.inactive}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Add Form */}
@@ -143,7 +201,9 @@ export default function UsersPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 16 }}>
         {loading ? (
           <div style={{ color: '#9CA3AF', gridColumn: '1/-1', textAlign: 'center', padding: 40 }}>{tr.loading}</div>
-        ) : users.map((u: any) => (
+        ) : filtered.length === 0 ? (
+          <div style={{ color: '#9CA3AF', gridColumn: '1/-1', textAlign: 'center', padding: 40 }}>{tr.noData}</div>
+        ) : filtered.map((u: any) => (
           <div key={u.id} className="card" style={{ opacity: u.is_active ? 1 : 0.6 }}>
             <div style={{ padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>

@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const result = await pool.query(`
       SELECT u.id, u.name, u.phone, u.email, u.role, u.gender, u.is_active,
-             st.specialty, st.gender_served, sal.name AS branch_name
+             st.specialty, st.gender_served, st.salon_id, sal.name AS branch_name
       FROM users u
       LEFT JOIN staff st ON st.user_id = u.id
       LEFT JOIN salons sal ON sal.id = st.salon_id
