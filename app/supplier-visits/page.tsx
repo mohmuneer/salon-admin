@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
-import { CalendarCheck, Search, Truck, Building2, MessageSquare } from 'lucide-react'
+import { CalendarCheck, Search, Truck, Building2, MessageSquare, FileText } from 'lucide-react'
 
 const VISIT_STATUSES = ['pending', 'approved', 'rejected', 'completed', 'cancelled']
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
@@ -100,15 +100,16 @@ export default function SupplierVisitsPage() {
                 <th>{isAr ? 'الفرع' : 'Branch'}</th>
                 <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
                 <th>{isAr ? 'سبب الزيارة' : 'Purpose'}</th>
+                <th>{isAr ? 'المرفق' : 'Attachment'}</th>
                 <th>{tr.status}</th>
                 <th>{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.loading}</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.loading}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
               ) : filtered.map((v: any) => (
                 <tr key={v.id}>
                   <td>
@@ -132,6 +133,20 @@ export default function SupplierVisitsPage() {
                         <MessageSquare size={12} style={{ marginTop: 2, flexShrink: 0 }} />
                         <span>{v.purpose}</span>
                       </div>
+                    ) : '—'}
+                  </td>
+                  <td>
+                    {v.attachment_url ? (
+                      /\.(jpg|jpeg|png|webp)$/i.test(v.attachment_url) ? (
+                        <a href={v.attachment_url} target="_blank" rel="noopener noreferrer">
+                          <img src={v.attachment_url} alt={v.attachment_name || ''} style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                        </a>
+                      ) : (
+                        <a href={v.attachment_url} target="_blank" rel="noopener noreferrer"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}>
+                          <FileText size={14} /> {isAr ? 'عرض الملف' : 'View file'}
+                        </a>
+                      )
                     ) : '—'}
                   </td>
                   <td><span className={`badge ${STATUS_BADGE[v.status]}`}>{isAr ? STATUS_LABELS[v.status].ar : STATUS_LABELS[v.status].en}</span></td>

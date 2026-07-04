@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Truck, LogOut, CalendarPlus, Building2, Clock, MessageSquare, X, Loader2, Phone, Package, Eye } from 'lucide-react'
+import { Truck, LogOut, CalendarPlus, Building2, Clock, MessageSquare, X, Loader2, Phone, Package, Eye, Paperclip, FileText } from 'lucide-react'
 import { useSupplierAuth } from '@/components/SupplierAuthContext'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -64,8 +64,10 @@ function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: stri
   const [visits, setVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showBook, setShowBook] = useState(false)
-  const [form, setForm] = useState({ branchId: '', visitDate: '', visitTime: '', purpose: '' })
+  const [form, setForm] = useState({ branchId: '', visitDate: '', visitTime: '', purpose: '', attachmentUrl: '', attachmentName: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -79,6 +81,23 @@ function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: stri
 
   useEffect(() => { load() }, [supplier.id])
 
+  const uploadAttachment = async (file: File) => {
+    setUploadError('')
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/public-supplier-visit-attachment', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) { setUploadError(data.error || 'فشل رفع الملف'); return }
+      setForm(f => ({ ...f, attachmentUrl: data.url, attachmentName: data.name }))
+    } catch {
+      setUploadError('تعذر رفع الملف')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const submitVisit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -87,12 +106,15 @@ function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: stri
     try {
       const res = await fetch('/api/public-supplier-visits', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ supplierId: supplier.id, branchId: form.branchId || null, visitDate: form.visitDate, visitTime: form.visitTime, purpose: form.purpose }),
+        body: JSON.stringify({
+          supplierId: supplier.id, branchId: form.branchId || null, visitDate: form.visitDate, visitTime: form.visitTime,
+          purpose: form.purpose, attachmentUrl: form.attachmentUrl || null, attachmentName: form.attachmentName || null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'حدث خطأ'); return }
       setMessage(data.message || 'تم إرسال طلب الزيارة')
-      setForm({ branchId: '', visitDate: '', visitTime: '', purpose: '' })
+      setForm({ branchId: '', visitDate: '', visitTime: '', purpose: '', attachmentUrl: '', attachmentName: '' })
       setShowBook(false)
       load()
       setTimeout(() => setMessage(''), 4000)
@@ -195,6 +217,26 @@ function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: stri
                     </label>
                     <textarea className="input-field" rows={3} value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })} placeholder="مثال: توريد منتجات، عرض كتالوج جديد..." />
                   </div>
+                  <div>
+                    <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                      <Paperclip size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> مرفق (صورة أو ملف PDF) — اختياري
+                    </label>
+                    <label className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                      {uploading ? <Loader2 size={14} className="spin" /> : <Paperclip size={14} />}
+                      {uploading ? 'جاري الرفع...' : 'اختيار ملف'}
+                      <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadAttachment(f) }} disabled={uploading} />
+                    </label>
+                    {form.attachmentName && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
+                        <FileText size={13} /> {form.attachmentName}
+                        <button type="button" title="إزالة المرفق" className="btn btn-icon" style={{ width: 22, height: 22 }} onClick={() => setForm(f => ({ ...f, attachmentUrl: '', attachmentName: '' }))}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    {uploadError && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 6 }}>{uploadError}</div>}
+                  </div>
                   {error && <div style={{ color: '#EF4444', fontSize: 13 }}>{error}</div>}
                 </div>
               </div>
@@ -241,6 +283,12 @@ function SupplierDashboard({ supplier }: { supplier: { id: string; name_ar: stri
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
                   ملاحظة الإدارة: {v.admin_notes}
                 </div>
+              )}
+              {v.attachment_url && (
+                <a href={v.attachment_url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--primary)', marginTop: 6, textDecoration: 'none' }}>
+                  <Paperclip size={12} /> {v.attachment_name || 'عرض المرفق'}
+                </a>
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>

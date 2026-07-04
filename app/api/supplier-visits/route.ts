@@ -6,6 +6,7 @@ export async function GET() {
     const result = await pool.query(`
       SELECT v.id, v.visit_date::text, to_char(v.visit_time, 'HH24:MI') AS visit_time,
              v.purpose, v.status, v.admin_notes, v.created_at::text,
+             v.attachment_url, v.attachment_name,
              sup.id AS supplier_id, sup.name_ar AS supplier_name_ar, sup.name_en AS supplier_name_en, sup.phone AS supplier_phone,
              COALESCE(s.name, '') AS branch_name
       FROM supplier_visit_requests v

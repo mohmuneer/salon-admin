@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const r = await pool.query(
       `SELECT v.id, v.visit_date::text, to_char(v.visit_time, 'HH24:MI') AS visit_time,
               v.purpose, v.status, v.admin_notes, v.created_at::text,
+              v.attachment_url, v.attachment_name,
               COALESCE(s.name, '') AS branch_name
        FROM supplier_visit_requests v
        LEFT JOIN salons s ON s.id = v.branch_id
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { supplierId, branchId, visitDate, visitTime, purpose } = await req.json()
+    const { supplierId, branchId, visitDate, visitTime, purpose, attachmentUrl, attachmentName } = await req.json()
     if (!supplierId || !visitDate || !visitTime) {
       return NextResponse.json({ error: 'التاريخ والوقت مطلوبان' }, { status: 400 })
     }
@@ -38,9 +39,9 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await pool.query(
-      `INSERT INTO supplier_visit_requests (supplier_id, branch_id, visit_date, visit_time, purpose)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-      [supplierId, branchId || null, visitDate, visitTime, purpose || null]
+      `INSERT INTO supplier_visit_requests (supplier_id, branch_id, visit_date, visit_time, purpose, attachment_url, attachment_name)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [supplierId, branchId || null, visitDate, visitTime, purpose || null, attachmentUrl || null, attachmentName || null]
     )
     return NextResponse.json({ ok: true, id: result.rows[0].id, message: 'تم إرسال طلب الزيارة' })
   } catch (err: any) {
