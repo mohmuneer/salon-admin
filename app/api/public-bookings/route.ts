@@ -13,6 +13,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'جميع الحقول مطلوبة' }, { status: 400 })
     }
 
+    /* ── Reject bookings in the past ──
+       Compared as Riyadh (UTC+3, no DST) wall-clock strings rather than
+       Date-parsing the client's date/time, since that parsing depends on
+       the server runtime's local timezone and would silently skew the
+       comparison by a few hours. */
+    const riyadhNow = new Date(Date.now() + 3 * 60 * 60 * 1000)
+    const todayStr = riyadhNow.toISOString().slice(0, 10)
+    const nowTimeStr = riyadhNow.toISOString().slice(11, 16)
+    if (date < todayStr || (date === todayStr && time < nowTimeStr)) {
+      return NextResponse.json({ error: 'لا يمكن حجز موعد في وقت سابق' }, { status: 400 })
+    }
+
     /* ── 1. Resolve service ID ── */
     let resolvedServiceId = serviceId
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(serviceId))

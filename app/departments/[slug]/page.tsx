@@ -49,13 +49,26 @@ function useThemeWatcher() {
 const ICONS = ['💇‍♀️','🎨','💅','💄','🧴','💆‍♀️','✨','🌸']
 const PI    = ['🧴','💧','🌿','✨','💎','💅','🧪','🌸']
 
-function genSlots() {
+function genSlots(selectedDate?: string) {
   const s: string[] = []
   for (let h = 9; h <= 20; h++) {
     s.push(`${h.toString().padStart(2,'0')}:00`)
     if (h < 20) s.push(`${h.toString().padStart(2,'0')}:30`)
   }
+  if (selectedDate) {
+    const now = new Date()
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    if (selectedDate === todayStr) {
+      const nowStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+      return s.filter(t => t > nowStr)
+    }
+  }
   return s
+}
+
+function todayLocalDateStr() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
 }
 
 interface ImgItem  { url: string; thumbnail?: string; type?: string }
@@ -89,15 +102,15 @@ function Modal({ children, onClose, title }: { children:React.ReactNode; onClose
   </div>
 }
 
-function Field({ label, value, onChange, type='text', placeholder, rows }:
-  { label?:string; value:string; onChange:(v:string)=>void; type?:string; placeholder?:string; rows?:number }) {
+function Field({ label, value, onChange, type='text', placeholder, rows, min }:
+  { label?:string; value:string; onChange:(v:string)=>void; type?:string; placeholder?:string; rows?:number; min?:string }) {
   const base: React.CSSProperties = { width:'100%', padding:'11px 14px', borderRadius:11, border:`1px solid ${C.border}`,
     background:C.navy, color:C.text, fontSize:14, outline:'none', boxSizing:'border-box', fontFamily:'inherit', transition:'border .2s' }
   return <div style={{ marginBottom:13 }}>
     {label && <label style={{ display:'block', color:C.textMuted, fontSize:13, marginBottom:5, fontWeight:500 }}>{label}</label>}
     {rows
       ? <textarea style={{ ...base, minHeight:80, resize:'vertical' }} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows} />
-      : <input style={base} value={value} onChange={e=>onChange(e.target.value)} type={type} placeholder={placeholder}
+      : <input style={base} value={value} onChange={e=>onChange(e.target.value)} type={type} placeholder={placeholder} min={min}
           onFocus={e=>e.currentTarget.style.borderColor=`${C.gold}55`}
           onBlur={e=>e.currentTarget.style.borderColor=C.border} />}
   </div>
@@ -835,13 +848,13 @@ export default function DeptPage() {
             {bkStep==='datetime'&&(<div>
               <h3 style={{ color:'#fff', fontSize:15, fontWeight:600, marginBottom:14 }}>📅 التاريخ والوقت</h3>
               {bkStaff&&<div style={{ fontSize:12, color:C.gold, marginBottom:10, fontWeight:500 }}>المختص: {bkStaff.name}</div>}
-              <Field label="التاريخ *" value={bkDate} onChange={checkAvailability} type="date" />
+              <Field label="التاريخ *" value={bkDate} onChange={checkAvailability} type="date" min={todayLocalDateStr()} />
               {bkDate&&(<div style={{ marginBottom:14 }}>
                 <label style={{ display:'block', color:C.textMuted, fontSize:13, marginBottom:6, fontWeight:500 }}>
                   الوقت * {loadingAvail&&<span style={{ fontSize:11, opacity:0.65 }}> — جاري التحقق من التوافر...</span>}
                 </label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(70px,1fr))', gap:5 }}>
-                  {genSlots().map(t=>{
+                  {genSlots(bkDate).map(t=>{
                     const busy=bookedSlots.includes(t)
                     return(<button key={t} onClick={()=>!busy&&setBkTime(t)} disabled={busy}
                       style={{ padding:'7px 4px', borderRadius:8, border:`1px solid ${busy?C.error+'55':bkTime===t?C.gold:C.border}`, background:busy?`${C.error}10`:bkTime===t?`${C.gold}22`:'transparent', color:busy?C.error:bkTime===t?C.gold:C.textMuted, fontSize:11, fontWeight:bkTime===t?700:400, cursor:busy?'not-allowed':'pointer', transition:'all .15s', fontFamily:'inherit', opacity:busy?.55:1 }}>
@@ -1074,9 +1087,9 @@ export default function DeptPage() {
                                 {modifyingBk?.id===b.id ? (
                                   <div style={{ flex:1 }}>
                                     <div style={{ display:'flex', gap:6, marginBottom:6 }}>
-                                      <input type="date" defaultValue={b.date} onChange={e=>setModifyingBk({...b,newDate:e.target.value})} style={{ flex:1,padding:'6px 8px',borderRadius:7,border:`1px solid ${C.border}`,background:C.navyCard,color:C.text,fontSize:11,outline:'none',fontFamily:'inherit' }}/>
+                                      <input type="date" defaultValue={b.date} min={todayLocalDateStr()} onChange={e=>setModifyingBk({...b,newDate:e.target.value})} style={{ flex:1,padding:'6px 8px',borderRadius:7,border:`1px solid ${C.border}`,background:C.navyCard,color:C.text,fontSize:11,outline:'none',fontFamily:'inherit' }}/>
                                       <select defaultValue={b.start_time?.slice(0,5)} onChange={e=>setModifyingBk({...b,newDate:modifyingBk.newDate||b.date,newTime:e.target.value})} style={{ flex:1,padding:'6px 8px',borderRadius:7,border:`1px solid ${C.border}`,background:C.navyCard,color:C.text,fontSize:11,outline:'none',fontFamily:'inherit' }}>
-                                        {genSlots().map(t=><option key={t} value={t}>{t}</option>)}
+                                        {genSlots(modifyingBk?.newDate||b.date).map(t=><option key={t} value={t}>{t}</option>)}
                                       </select>
                                     </div>
                                     <div style={{ display:'flex', gap:6 }}>

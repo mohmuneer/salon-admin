@@ -93,14 +93,14 @@ function Md({ children, onClose, title, wide }: { children: React.ReactNode; onC
   </div>
 }
 
-function In({ label, value, onChange, type = 'text', placeholder, icon, rows }: { label?: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; icon?: React.ReactNode; rows?: number }) {
+function In({ label, value, onChange, type = 'text', placeholder, icon, rows, min }: { label?: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; icon?: React.ReactNode; rows?: number; min?: string }) {
   const base: React.CSSProperties = { width: '100%', padding: '12px 16px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.navy, color: C.text, fontSize: 14, outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box', fontFamily: 'inherit' }
   return <div style={{ marginBottom: 14 }}>
     {label && <label style={{ display: 'block', color: C.textMuted, fontSize: 13, marginBottom: 5, fontWeight: 500 }}>{label}</label>}
     <div style={{ position: 'relative' }}>
       {icon && <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: C.textDim, pointerEvents: 'none' }}>{icon}</div>}
       {rows ? <textarea style={{ ...base, paddingRight: icon ? 44 : 16, minHeight: 80, resize: 'vertical' }} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} /> :
-       <input style={{ ...base, paddingRight: icon ? 44 : 16 }} value={value} onChange={e => onChange(e.target.value)} type={type} placeholder={placeholder} />}
+       <input style={{ ...base, paddingRight: icon ? 44 : 16 }} value={value} onChange={e => onChange(e.target.value)} type={type} placeholder={placeholder} min={min} />}
     </div>
   </div>
 }
@@ -114,7 +114,23 @@ function Bt({ children, onClick, variant = 'primary', fullWidth, disabled, style
     onMouseLeave={e => { if (!disabled) { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)' } }}>{children}</button>
 }
 
-function genSlots() { const s: string[] = []; for (let h = 9; h <= 20; h++) { s.push(`${h.toString().padStart(2,'0')}:00`); if (h < 20) s.push(`${h.toString().padStart(2,'0')}:30`) } return s }
+function genSlots(selectedDate?: string) {
+  const s: string[] = []
+  for (let h = 9; h <= 20; h++) { s.push(`${h.toString().padStart(2,'0')}:00`); if (h < 20) s.push(`${h.toString().padStart(2,'0')}:30`) }
+  if (selectedDate) {
+    const now = new Date()
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    if (selectedDate === todayStr) {
+      const nowStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+      return s.filter(t => t > nowStr)
+    }
+  }
+  return s
+}
+function todayLocalDateStr() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+}
 
 const navLinks = [
   { id: 'departments', label: 'الأقسام' },
@@ -1526,7 +1542,7 @@ export default function LamsetAlMalika() {
                                 style={{ flex:1, padding:'8px 10px', borderRadius:9, border:`1px solid ${C.border}`, background:C.navy, color:C.text, fontSize:13, outline:'none', fontFamily:'inherit' }} />
                               <select value={modBkTime||b.start_time?.slice(0,5)} onChange={e=>setModBkTime(e.target.value)}
                                 style={{ flex:1, padding:'8px 10px', borderRadius:9, border:`1px solid ${C.border}`, background:C.navy, color:C.text, fontSize:13, outline:'none', fontFamily:'inherit' }}>
-                                {['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'].map(t=><option key={t} value={t}>{t}</option>)}
+                                {genSlots(modBkDate||b.date).map(t=><option key={t} value={t}>{t}</option>)}
                               </select>
                             </div>
                             <div style={{ display:'flex', gap:8 }}>
@@ -1757,11 +1773,11 @@ export default function LamsetAlMalika() {
       </div>
       <div style={{ color:C.textMuted, fontSize:13, marginBottom:12 }}><User size={14} style={{ marginLeft:4 }} /> {authUser?.name}</div>
       <div style={{ color:C.textMuted, fontSize:13, marginBottom:16 }}><Phone size={14} style={{ marginLeft:4 }} /> {authUser?.phone}</div>
-      <In label="اختيار التاريخ" value={bkDate} onChange={setBkDate} type="date" />
+      <In label="اختيار التاريخ" value={bkDate} onChange={setBkDate} type="date" min={todayLocalDateStr()} />
       {bkDate && <div style={{ marginBottom:16 }}>
         <label style={{ display:'block', color:C.textMuted, fontSize:13, marginBottom:6, fontWeight:500 }}>اختيار الوقت</label>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(72px,1fr))', gap:6 }}>
-          {genSlots().map(t => <button key={t} onClick={() => setBkTime(t)} style={{ padding:'8px 6px', borderRadius:8, border:`1px solid ${bkTime===t ? C.gold : C.border}`, background: bkTime===t ? `${C.gold}22` : 'transparent', color: bkTime===t ? C.gold : C.textMuted, fontSize:12, fontWeight: bkTime===t ? 700 : 400, cursor:'pointer', transition:'all 0.2s' }}>{t}</button>)}
+          {genSlots(bkDate).map(t => <button key={t} onClick={() => setBkTime(t)} style={{ padding:'8px 6px', borderRadius:8, border:`1px solid ${bkTime===t ? C.gold : C.border}`, background: bkTime===t ? `${C.gold}22` : 'transparent', color: bkTime===t ? C.gold : C.textMuted, fontSize:12, fontWeight: bkTime===t ? 700 : 400, cursor:'pointer', transition:'all 0.2s' }}>{t}</button>)}
         </div>
       </div>}
       <Bt fullWidth onClick={submitBooking} disabled={bkLoading} style={{ padding:'13px' }}>{bkLoading ? 'جاري الحجز...' : 'تأكيد الحجز'}</Bt>

@@ -81,6 +81,14 @@ export async function PUT(req: NextRequest) {
     }
 
     if (action === 'modify' && date && time) {
+      // Reject rescheduling to a past date/time (Riyadh wall-clock, see public-bookings for rationale)
+      const riyadhNow = new Date(Date.now() + 3 * 60 * 60 * 1000)
+      const todayStr = riyadhNow.toISOString().slice(0, 10)
+      const nowTimeStr = riyadhNow.toISOString().slice(11, 16)
+      if (date < todayStr || (date === todayStr && time < nowTimeStr)) {
+        return NextResponse.json({ error: 'لا يمكن تعديل الحجز إلى وقت سابق' }, { status: 400 })
+      }
+
       // Get service duration
       const svc = await pool.query(
         'SELECT sv.duration_min FROM appointments a JOIN services sv ON sv.id = a.service_id WHERE a.id = $1',
