@@ -5,8 +5,8 @@ import bcrypt from 'bcryptjs'
 
 const MOCK_USERS = [
   { id: '1', name: 'مدير النظام', phone: '+966500000004', email: 'admin@glamour.sa', role: 'admin', staffId: null, password: 'admin123' },
-  { id: '2', name: 'سارة الأحمدي', phone: '+966500000002', email: 'sara@glamour.sa', role: 'staff', staffId: '1', password: 'admin123' },
-  { id: '3', name: 'نورة القحطاني', phone: '+966500000003', email: 'noura@glamour.sa', role: 'staff', staffId: '2', password: 'admin123' },
+  { id: '2', name: 'سارة الأحمدي', phone: '+966500000002', email: 'sara@glamour.sa', role: 'staff', staffId: '1', password: 'emp123' },
+  { id: '3', name: 'نورة القحطاني', phone: '+966500000003', email: 'noura@glamour.sa', role: 'staff', staffId: '2', password: 'emp123' },
 ]
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -30,7 +30,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (user) {
             const valid = user.password_hash
               ? await bcrypt.compare(credentials.password as string, user.password_hash)
-              : credentials.password === 'admin123'
+              : user.role === 'admin'
+                ? credentials.password === 'admin123'
+                : credentials.password === 'emp123'
             if (!valid) return null
             return { id: user.id, name: user.name, email: user.email, role: user.role, staffId: user.staff_id }
           }

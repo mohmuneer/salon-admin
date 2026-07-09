@@ -30,7 +30,7 @@ export default function LoginForm({ name, name_en, logo_url }: Props) {
       error: 'رقم الجوال أو كلمة المرور غير صحيحة',
       phonePh: '+966500000000',
       passwordPh: '••••••••',
-      hint: 'تجريبي — مدير: +966500000004 / admin123 · موظف: +966500000002 / admin123',
+      hint: 'تجريبي — مدير: +966500000004 / admin123 · موظف: +966500000002 / emp123',
     },
     en: {
       subtitle: 'Sign In',
@@ -41,7 +41,7 @@ export default function LoginForm({ name, name_en, logo_url }: Props) {
       error: 'Invalid phone number or password',
       phonePh: '+966500000000',
       passwordPh: '••••••••',
-      hint: 'Demo — Admin: +966500000004 / admin123 · Staff: +966500000002 / admin123',
+      hint: 'Demo — Admin: +966500000004 / admin123 · Staff: +966500000002 / emp123',
     }
   }
 
