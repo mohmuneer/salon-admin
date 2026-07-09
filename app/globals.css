@@ -344,7 +344,7 @@ body[dir="rtl"] .sidebar.collapsed .nav-link .nav-tooltip {
 
 /* ─── Main Content ─────────────────────────────────────── */
 .main-content {
-  margin-inline-start: calc(var(--sidebar-width) + 32px);
+  margin-inline-start: var(--sidebar-width);
   min-height: 100vh;
   transition: margin 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: margin;
@@ -353,7 +353,7 @@ body[dir="rtl"] .sidebar.collapsed .nav-link .nav-tooltip {
 }
 
 .sidebar.collapsed ~ .main-content {
-  margin-inline-start: calc(var(--sidebar-collapsed-width) + 32px);
+  margin-inline-start: var(--sidebar-collapsed-width);
 }
 
 /* ─── Main Wrapper (content container) ────────────────── */
