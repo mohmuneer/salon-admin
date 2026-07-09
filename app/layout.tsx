@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import PortalHeader from '@/components/PortalHeader'
 import QueryProvider from '@/components/QueryProvider'
 import { SupplierAuthProvider } from '@/components/SupplierAuthContext'
+import PwaSetup from '@/components/PwaSetup'
 import { Lang } from '@/lib/translations'
 
 export const LangContext = createContext<{
@@ -44,7 +45,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const isActivate = pathname === '/activate'
   const isPublic = pathname === '/public' || pathname.startsWith('/public/') || pathname.startsWith('/departments/')
   const isSupplierPortal = pathname.startsWith('/supplier-portal')
-  const isFullPage = isActivate || isLogin || isReceipt || isPublic || isSupplierPortal
+  const isPaymentCallback = pathname.startsWith('/payment-callback')
+  const isFullPage = isActivate || isLogin || isReceipt || isPublic || isSupplierPortal || isPaymentCallback
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarLoaded, setSidebarLoaded] = useState(false)
@@ -144,6 +146,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Glamour Admin" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+        <link rel="mask-icon" href="/icon-192.png" color="#1A1A2E" />
       </head>
       <body dir={dir}>
         <QueryProvider>
@@ -155,6 +164,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </LangContext.Provider>
           </SessionProvider>
         </QueryProvider>
+        <PwaSetup />
       </body>
     </html>
   )
