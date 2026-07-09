@@ -49,9 +49,8 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false })
-    window.location.href = '/login'
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/login' })
   }
 
   return (
