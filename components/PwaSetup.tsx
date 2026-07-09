@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { WifiOff, Share2, ExternalLink } from 'lucide-react'
 import SalonLogo from '@/components/SalonLogo'
 import { useTheme } from '@/app/layout'
@@ -18,6 +19,7 @@ function isInStandalone(): boolean {
 
 export default function PwaSetup() {
   const { theme } = useTheme()
+  const pathname = usePathname()
   const [deferred, setDeferred] = useState<any>(null)
   const [showInstall, setShowInstall] = useState(false)
   const [showIOSInstall, setShowIOSInstall] = useState(false)
@@ -33,13 +35,15 @@ export default function PwaSetup() {
 
     const isIOSDevice = isIOS()
     const standalone = isInStandalone()
+    const isSupplierPortal = pathname?.startsWith('/supplier-portal')
 
-    if (isIOSDevice && !standalone) {
+    if (isIOSDevice && !standalone && !isSupplierPortal) {
       const timer = setTimeout(() => setShowIOSInstall(true), 1500)
       return () => clearTimeout(timer)
     }
 
     const onBeforeInstall = (e: Event) => {
+      if (isSupplierPortal) return
       e.preventDefault()
       setDeferred(e)
       setShowInstall(true)
@@ -50,7 +54,7 @@ export default function PwaSetup() {
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall)
     }
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     const onOnline = () => setOffline(false)
