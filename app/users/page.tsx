@@ -262,6 +262,10 @@ export default function UsersPage() {
                       </select>
                     </div>
                     <div>
+                      <label style={{ fontSize: 13, color: '#6B7280', display: 'block', marginBottom: 6 }}>{tr.password}</label>
+                      <input className="input-field" type="password" aria-label={tr.password} value={editForm.password || ''} onChange={e => setEditForm({ ...editForm, password: e.target.value })} placeholder={lang === 'ar' ? 'اتركه فارغاً إذا لم ترد التغيير' : 'Leave empty to keep current'} />
+                    </div>
+                    <div>
                       <label style={{ fontSize: 13, color: '#6B7280', display: 'block', marginBottom: 6 }}>{tr.gender}</label>
                       <select className="input-field" aria-label={tr.gender} value={editForm.gender || 'male'} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
                         <option value="male">{tr.male}</option>

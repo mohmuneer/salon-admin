@@ -50,12 +50,20 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const { id, name, phone, email, role, gender, specialty, gender_served, is_active } = await req.json()
+  const { id, name, phone, email, password, role, gender, specialty, gender_served, is_active } = await req.json()
   try {
-    await pool.query(
-      `UPDATE users SET name=$1, phone=$2, email=$3, role=$4, gender=$5, is_active=$6 WHERE id=$7`,
-      [name, phone, email, role, gender, is_active, id]
-    )
+    if (password) {
+      const password_hash = await bcrypt.hash(password, 10)
+      await pool.query(
+        `UPDATE users SET name=$1, phone=$2, email=$3, role=$4, gender=$5, is_active=$6, password_hash=$7 WHERE id=$8`,
+        [name, phone, email, role, gender, is_active, password_hash, id]
+      )
+    } else {
+      await pool.query(
+        `UPDATE users SET name=$1, phone=$2, email=$3, role=$4, gender=$5, is_active=$6 WHERE id=$7`,
+        [name, phone, email, role, gender, is_active, id]
+      )
+    }
     if (role === 'staff') {
       await pool.query(
         `UPDATE staff SET specialty=$1, gender_served=$2 WHERE user_id=$3`,

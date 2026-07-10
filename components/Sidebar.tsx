@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useLang, useSidebar, useTheme } from '@/app/layout'
 import { t } from '@/lib/translations'
@@ -10,7 +11,7 @@ import {
   LayoutDashboard, Calendar, Users, Scissors,
   ShoppingBag, BarChart2, ShoppingCart, Settings, LogOut, Sparkles,
   Building2, UserCog, X, Package, Globe, Layers,
-  ChevronLeft, ChevronRight, DollarSign, CreditCard, Boxes, Warehouse, Truck, CalendarCheck, ClipboardList,
+  ChevronLeft, ChevronRight, DollarSign, CreditCard, Boxes, Warehouse, Truck, CalendarCheck, ClipboardList, Search,
 } from 'lucide-react'
 
 const navItems = [
@@ -47,6 +48,14 @@ export default function Sidebar() {
   const { open, toggle, close, collapsed, toggleCollapsed } = useSidebar()
   const { settings } = useSalonSettings()
   const { theme } = useTheme()
+  const [navSearch, setNavSearch] = useState('')
+
+  const filteredNav = navSearch
+    ? navItems.filter(item => {
+        const label = (tr[item.key as keyof typeof tr] as string) || ''
+        return label.toLowerCase().includes(navSearch.toLowerCase())
+      })
+    : navItems
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
@@ -87,8 +96,25 @@ export default function Sidebar() {
           </button>
         </div>
 
+        {!collapsed && (
+          <div style={{ padding: '8px 12px' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: 10, color: 'rgba(255,255,255,0.3)' }} />
+              <input
+                value={navSearch}
+                onChange={e => setNavSearch(e.target.value)}
+                placeholder={lang === 'ar' ? 'بحث...' : 'Search...'}
+                style={{
+                  width: '100%', padding: '6px 10px 6px 30px',
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, color: 'white', fontSize: 13, outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+        )}
         <div className="sidebar-nav">
-          {navItems.map(({ key, href, icon: Icon }) => {
+          {filteredNav.map(({ key, href, icon: Icon }) => {
             const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
             return (
               <Link
