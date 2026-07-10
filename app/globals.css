@@ -690,15 +690,6 @@ body[dir="rtl"] .sidebar.collapsed .nav-link .nav-tooltip {
   user-select: none !important;
   -webkit-user-select: none !important;
 }
-.table-container.dragging * {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-  pointer-events: none !important;
-}
-.table-container.dragging .data-table th,
-.table-container.dragging .data-table td {
-  pointer-events: none !important;
-}
 .table-container.inside-card {
   margin: 0 calc(-1 * 20px);
   border-radius: 0;
