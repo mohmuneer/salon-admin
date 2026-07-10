@@ -725,7 +725,6 @@ body[dir="rtl"] .sidebar.collapsed .nav-link .nav-tooltip {
   border-bottom: 1px solid var(--border);
   font-size: 14px;
   color: var(--text);
-  white-space: nowrap;
 }
 
 .data-table tbody tr:hover td {

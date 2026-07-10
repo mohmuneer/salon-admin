@@ -94,9 +94,7 @@ export default function DataTable({ children, className = '', insideCard = false
       className={`table-container${insideCard ? ' inside-card' : ''}${className ? ' ' + className : ''}`}
       style={maxHeight ? { maxHeight } : {}}
     >
-      <table className="data-table">
-        {children}
-      </table>
+      {children}
     </div>
   )
 }
