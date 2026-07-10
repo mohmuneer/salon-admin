@@ -6,6 +6,7 @@ import {
   Boxes, Warehouse, Package, Pencil, Trash2, X, Check, CalendarDays,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
+import DataTable from '@/app/components/DataTable'
 
 const EMPTY_FORM = { name_ar: '', name_en: '', description: '', warehouse_ids: [] as string[] }
 
@@ -146,16 +147,16 @@ export default function ProductGroupsPage() {
         </div>
       )}
 
-      <div className="table-container">
+      <DataTable>
         <table className="data-table">
           <thead>
             <tr>
-              <th>{isAr ? 'اسم المجموعة' : 'Name'}</th>
+              <th className="sticky-col">{isAr ? 'اسم المجموعة' : 'Name'}</th>
               <th>{isAr ? 'المخازن' : 'Warehouses'}</th>
               <th>{isAr ? 'المنتجات' : 'Products'}</th>
               <th>{tr.status}</th>
               <th>{isAr ? 'تاريخ الإضافة' : 'Created'}</th>
-              <th>{tr.actions}</th>
+              <th className="sticky-col-right">{tr.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -199,7 +200,7 @@ export default function ProductGroupsPage() {
                   </td>
                 ) : (
                   <>
-                    <td>
+                    <td className="sticky-col">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Boxes size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                         <div>
@@ -236,8 +237,8 @@ export default function ProductGroupsPage() {
                       <CalendarDays size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
                       {g.created_at ? new Date(g.created_at).toLocaleDateString(isAr ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 5 }}>
+                    <td className="sticky-col-right">
+                      <div className="action-buttons">
                         <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'}
                           onClick={() => {
                             setEditingId(g.id)
@@ -263,7 +264,7 @@ export default function ProductGroupsPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTable>
     </div>
   )
 }

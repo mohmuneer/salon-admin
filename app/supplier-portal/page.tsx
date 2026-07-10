@@ -7,6 +7,7 @@ import {
   Search, ChevronRight, ChevronLeft, Star, TrendingUp,
 } from 'lucide-react'
 import { useSupplierAuth } from '@/components/SupplierAuthContext'
+import DataTable from '@/app/components/DataTable'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'قيد الانتظار',
@@ -494,11 +495,10 @@ function ItemsTab({ supplierId }: { supplierId: string }) {
       </div>
 
       <div className="card">
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>الصنف</th>
+        <DataTable>
+          <thead>
+            <tr>
+              <th className="sticky-col">الصنف</th>
                 <th>بيانات المورد</th>
                 <th>السعر</th>
                 <th>الكمية المباعة</th>
@@ -512,7 +512,7 @@ function ItemsTab({ supplierId }: { supplierId: string }) {
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>لا توجد نتائج</td></tr>
               ) : items.map((it: any) => (
                 <tr key={it.catalog_id}>
-                  <td>
+                  <td className="sticky-col">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       {it.is_default && <Star size={12} color="#F59E0B" fill="#F59E0B" />}
                       {it.name_ar}
@@ -536,8 +536,7 @@ function ItemsTab({ supplierId }: { supplierId: string }) {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </DataTable>
       </div>
 
       {totalPages > 1 && (

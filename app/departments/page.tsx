@@ -7,6 +7,7 @@ import {
   X, Check, CalendarDays, Upload, Loader2, Image as ImageIcon, Eye,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
+import DataTable from '@/app/components/DataTable'
 
 /* ── Image uploader ── */
 function ImageUploader({
@@ -279,11 +280,11 @@ export default function DepartmentsPage() {
       )}
 
       {/* ── Table ── */}
-      <div style={{ overflowX: 'auto' }}>
+      <DataTable>
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ width: 56 }}>{isAr ? 'صورة' : 'Image'}</th>
+              <th className="sticky-col" style={{ width: 56 }}>{isAr ? 'صورة' : 'Image'}</th>
               <th>{isAr ? 'اسم القسم' : 'Name'}</th>
               <th>{tr.branch}</th>
               <th>{isAr ? 'موظفون' : 'Staff'}</th>
@@ -291,7 +292,7 @@ export default function DepartmentsPage() {
               <th>{isAr ? 'منتجات' : 'Products'}</th>
               <th>{tr.status}</th>
               <th>{isAr ? 'تاريخ الإضافة' : 'Created'}</th>
-              <th>{tr.actions}</th>
+              <th className="sticky-col-right">{tr.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -378,7 +379,7 @@ export default function DepartmentsPage() {
                 ) : (
                   <>
                     {/* ── Image cell ── */}
-                    <td>
+                    <td className="sticky-col">
                       {d.image_url ? (
                         <img
                           src={d.image_url}
@@ -458,8 +459,8 @@ export default function DepartmentsPage() {
                     </td>
 
                     {/* Actions */}
-                    <td>
-                      <div style={{ display: 'flex', gap: 5 }}>
+                    <td className="sticky-col-right">
+                      <div className="action-buttons">
                         <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'}
                           onClick={() => {
                             setEditingId(d.id)
@@ -494,7 +495,7 @@ export default function DepartmentsPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTable>
     </div>
   )
 }

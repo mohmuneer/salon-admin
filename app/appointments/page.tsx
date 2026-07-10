@@ -4,6 +4,7 @@ import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { Search, Filter, Printer } from 'lucide-react'
 import { printInvoice } from '@/lib/printInvoice'
+import DataTable from '@/app/components/DataTable'
 
 const STATUSES = ['all','pending','confirmed','in_progress','completed','cancelled','no_show']
 
@@ -64,18 +65,18 @@ export default function AppointmentsPage() {
 
       {/* Table */}
       <div className="card">
-        <div style={{ overflowX:'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>{tr.customer}</th>
+                <th className="sticky-col">{tr.customer}</th>
                 <th>{tr.service}</th>
                 <th>{tr.staff_member}</th>
                 <th>{tr.date}</th>
                 <th>{tr.time}</th>
                 <th>{tr.total}</th>
                 <th>{tr.status}</th>
-                <th>{tr.actions}</th>
+                <th className="sticky-col-right">{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -85,7 +86,7 @@ export default function AppointmentsPage() {
                 <tr><td colSpan={8} style={{ textAlign:'center', padding:40, color:'#9CA3AF' }}>{tr.noData}</td></tr>
               ) : appts.map((a: any) => (
                 <tr key={a.id}>
-                  <td>
+                  <td className="sticky-col">
                     <div style={{ fontWeight:500 }}>{a.customer_name}</div>
                     <div style={{ fontSize:12, color:'#9CA3AF' }}>{a.customer_phone}</div>
                   </td>
@@ -95,7 +96,8 @@ export default function AppointmentsPage() {
                   <td>{a.start_time?.slice(0,5)} - {a.end_time?.slice(0,5)}</td>
                   <td style={{ fontWeight:600, color:'var(--gold)' }}>{Number(a.total||0).toLocaleString()} {tr.sar}</td>
                   <td><span className={`badge badge-${a.status}`}>{tr[a.status as keyof typeof tr] || a.status}</span></td>
-                  <td style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <td className="sticky-col-right">
+                    <div className="action-buttons">
                     <select
                       value={a.status}
                       onChange={e => updateStatus(a.id, e.target.value)}
@@ -111,12 +113,13 @@ export default function AppointmentsPage() {
                         <Printer size={16} />
                       </button>
                     )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   )

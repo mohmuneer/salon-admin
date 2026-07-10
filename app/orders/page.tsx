@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { Search } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 
 const orderStatuses = ['pending','confirmed','preparing','shipped','delivered','cancelled']
 const paymentStatuses = ['pending','paid','failed','refunded']
@@ -100,18 +101,18 @@ export default function OrdersPage() {
       </div>
 
       <div className="card">
-        <div style={{ overflowX:'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>{tr.customer}</th>
+                <th className="sticky-col">{tr.customer}</th>
                 <th>{lang==='ar'?'عدد المنتجات':'Items'}</th>
                 <th>{tr.total}</th>
                 <th>{lang==='ar'?'حالة الدفع':'Payment'}</th>
                 <th>{lang==='ar'?'طريقة الدفع':'Method'}</th>
                 <th>{tr.date}</th>
                 <th>{tr.status}</th>
-                <th>{tr.actions}</th>
+                <th className="sticky-col-right">{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +122,7 @@ export default function OrdersPage() {
                 <tr><td colSpan={8} style={{ textAlign:'center', padding:40, color:'#9CA3AF' }}>{tr.noData}</td></tr>
               ) : filteredOrders.map((o: any) => (
                 <tr key={o.id}>
-                  <td>
+                  <td className="sticky-col">
                     <div style={{ fontWeight:500 }}>{o.customer_name}</div>
                     <div style={{ fontSize:12, color:'#9CA3AF' }}>{o.phone}</div>
                   </td>
@@ -135,17 +136,19 @@ export default function OrdersPage() {
                   <td style={{ color:'#6B7280' }}>{o.payment_method || '—'}</td>
                   <td style={{ color:'#6B7280' }}>{new Date(o.created_at).toLocaleDateString(lang==='ar'?'ar-SA':'en-US')}</td>
                   <td><span className={`badge badge-${o.status}`}>{isAr ? (statusLabels[o.status]?.ar || o.status) : (statusLabels[o.status]?.en || o.status)}</span></td>
-                  <td>
+                  <td className="sticky-col-right">
+                    <div className="action-buttons">
                     <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)}
                       className="btn btn-chip">
                       {orderStatuses.map(s => <option key={s} value={s}>{isAr ? statusLabels[s].ar : statusLabels[s].en}</option>)}
                     </select>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   )

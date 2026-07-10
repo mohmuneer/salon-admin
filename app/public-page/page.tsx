@@ -9,6 +9,7 @@ import {
   Upload, Sparkles, CalendarDays, Smartphone, Share2, Palette
 } from 'lucide-react'
 import PriceInput from '@/components/PriceInput'
+import DataTable from '@/app/components/DataTable'
 
 type Tab = 'offers' | 'ads' | 'reviews' | 'banner' | 'coupons' | 'settings' | 'stats' | 'themes' | 'features'
 
@@ -1588,11 +1589,10 @@ const [couponForm, setCouponForm] = useState<Record<string, any>>(emptyCoupon)
           {/* Per-offer stats */}
           <div className="card" style={{ marginTop: 20 }}>
             <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 600 }}>{lang === 'ar' ? 'إحصائيات العروض' : 'Offer Stats'}</h2></div>
-            <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>{lang === 'ar' ? 'العرض' : 'Offer'}</th>
+            <DataTable>
+              <thead>
+                <tr>
+                  <th className="sticky-col">{lang === 'ar' ? 'العرض' : 'Offer'}</th>
                     <th>{tr.views}</th>
                     <th>{tr.clicks}</th>
                     <th>{tr.bookings}</th>
@@ -1602,7 +1602,7 @@ const [couponForm, setCouponForm] = useState<Record<string, any>>(emptyCoupon)
                 <tbody>
                   {offers.filter(o => o.is_active).map(o => (
                     <tr key={o.id}>
-                      <td style={{ fontWeight: 600 }}>{o.title_ar}</td>
+                      <td className="sticky-col" style={{ fontWeight: 600 }}>{o.title_ar}</td>
                       <td>{o.views_count || 0}</td>
                       <td>{o.clicks_count || 0}</td>
                       <td>{o.bookings_count || 0}</td>
@@ -1610,8 +1610,7 @@ const [couponForm, setCouponForm] = useState<Record<string, any>>(emptyCoupon)
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           </div>
         </div>
       )}

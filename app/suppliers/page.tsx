@@ -6,6 +6,7 @@ import {
   Truck, Phone, Mail, Package, Pencil, Trash2, X, Check, CalendarDays, KeyRound, Search, Boxes, Star,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
+import DataTable from '@/app/components/DataTable'
 
 const EMPTY_FORM = { name_ar: '', name_en: '', phone: '', email: '', address: '', supplier_group_id: '', product_ids: [] as string[], password: '' }
 const EMPTY_POLICY = { supplier_sku: '', price: '', lead_time_days: '', is_default: false }
@@ -475,16 +476,16 @@ export default function SuppliersPage() {
         </div>
       )}
 
-      <div className="table-container">
+      <DataTable>
         <table className="data-table">
           <thead>
             <tr>
-              <th>{isAr ? 'اسم المورد' : 'Name'}</th>
+              <th className="sticky-col">{isAr ? 'اسم المورد' : 'Name'}</th>
               <th>{isAr ? 'التواصل' : 'Contact'}</th>
               <th>{isAr ? 'المجموعة' : 'Group'}</th>
               <th>{isAr ? 'المنتجات' : 'Products'}</th>
               <th>{tr.status}</th>
-              <th>{tr.actions}</th>
+              <th className="sticky-col-right">{tr.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -494,7 +495,7 @@ export default function SuppliersPage() {
               <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
             ) : suppliers.map((s: any) => (
               <tr key={s.id} style={{ opacity: s.is_active ? 1 : 0.5 }}>
-                  <td>
+                  <td className="sticky-col">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Truck size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                         <div>
@@ -527,8 +528,8 @@ export default function SuppliersPage() {
                         {s.is_active ? tr.active : tr.inactive}
                       </span>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 5 }}>
+                    <td className="sticky-col-right">
+                      <div className="action-buttons">
                         <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'}
                           onClick={() => {
                             setEditGroupFilter('')
@@ -569,7 +570,7 @@ export default function SuppliersPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTable>
     </div>
   )
 }

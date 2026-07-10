@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { Clock, ArrowLeft, ArrowRight } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 import ChartCard from './ChartCard'
 import { AvatarLetter, StatusPill, StatusPillEn } from './shared'
 
@@ -18,11 +19,10 @@ export default function RecentAppointmentsTable({ data, isAr, GOLD }: { data: an
           {isAr ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
         </Link>
       </div>
-      <div className="table-wrapper">
-        <table className="data-table">
+      <DataTable>
           <thead>
             <tr>
-              <th style={{ paddingInlineStart: 22 }}>{isAr ? 'العميل' : 'Customer'}</th>
+              <th className="sticky-col" style={{ paddingInlineStart: 22 }}>{isAr ? 'العميل' : 'Customer'}</th>
               <th>{isAr ? 'الخدمة' : 'Service'}</th>
               <th>{isAr ? 'التاريخ' : 'Date'}</th>
               <th>{isAr ? 'الحالة' : 'Status'}</th>
@@ -32,7 +32,7 @@ export default function RecentAppointmentsTable({ data, isAr, GOLD }: { data: an
           <tbody>
             {data.slice(0, 5).map((a: any, i: number) => (
               <tr key={a.id}>
-                <td style={{ paddingInlineStart: 22 }}>
+                <td className="sticky-col" style={{ paddingInlineStart: 22 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <AvatarLetter name={a.customer_name} index={i} size={32} />
                     <span style={{ fontWeight: 500 }}>{a.customer_name}</span>
@@ -49,8 +49,7 @@ export default function RecentAppointmentsTable({ data, isAr, GOLD }: { data: an
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </DataTable>
     </div>
   )
 }

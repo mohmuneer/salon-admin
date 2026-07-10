@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { Plus, Minus, AlertTriangle, Search, RotateCcw, RefreshCw, Archive, Layers } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 
 export default function InventoryPage() {
   const { lang } = useLang()
@@ -141,11 +142,11 @@ export default function InventoryPage() {
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ overflowX: 'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th className="sticky-col">#</th>
                 <th>{lang === 'ar' ? 'المنتج' : 'Product'}</th>
                 <th>{lang === 'ar' ? 'القسم' : 'Department'}</th>
                 <th>{tr.brand}</th>
@@ -154,7 +155,7 @@ export default function InventoryPage() {
                 <th>{lang === 'ar' ? 'المنصرف' : 'Dispensed'}</th>
                 <th style={{ color: 'var(--gold)' }}>{lang === 'ar' ? 'المتوفر' : 'Available'}</th>
                 <th>{lang === 'ar' ? 'الحد الأدنى' : 'Min Stock'}</th>
-                <th>{lang === 'ar' ? 'الإجراءات' : 'Actions'}</th>
+                <th className="sticky-col-right">{lang === 'ar' ? 'الإجراءات' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -166,7 +167,7 @@ export default function InventoryPage() {
                 const low = p.current_stock <= p.min_stock_alert
                 return (
                   <tr key={p.id}>
-                    <td style={{ color: '#9CA3AF', fontSize: 12 }}>{i + 1}</td>
+                    <td className="sticky-col" style={{ color: '#9CA3AF', fontSize: 12 }}>{i + 1}</td>
                     <td style={{ fontWeight: 500 }}>{p.name_ar}</td>
                     <td style={{ color: '#6B7280', fontSize:13 }}>
                       {p.department_name ? (
@@ -186,8 +187,8 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td style={{ color: '#6B7280', fontSize: 13 }}>{p.min_stock_alert}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 4 }}>
+                    <td className="sticky-col-right">
+                      <div className="action-buttons">
                         <button className="btn btn-icon" onClick={() => openDialog('in', p)}
                           title={lang === 'ar' ? 'إضافة وارد' : 'Stock In'}>
                           <Plus size={16} />
@@ -207,7 +208,7 @@ export default function InventoryPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
 
       <div className="card">
@@ -217,18 +218,18 @@ export default function InventoryPage() {
             {lang === 'ar' ? 'سجل الحركات' : 'Transaction History'}
           </h2>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>{lang === 'ar' ? 'المنتج' : 'Product'}</th>
+                <th className="sticky-col">{lang === 'ar' ? 'المنتج' : 'Product'}</th>
                 <th>{lang === 'ar' ? 'النوع' : 'Type'}</th>
                 <th>{lang === 'ar' ? 'الكمية' : 'Qty'}</th>
                 <th>{lang === 'ar' ? 'المخزون قبل' : 'Prev Stock'}</th>
                 <th>{lang === 'ar' ? 'المخزون بعد' : 'New Stock'}</th>
                 <th>{lang === 'ar' ? 'المرجع' : 'Reference'}</th>
                 <th>{lang === 'ar' ? 'ملاحظات' : 'Notes'}</th>
-                <th>{lang === 'ar' ? 'التاريخ' : 'Date'}</th>
+                <th className="sticky-col-right">{lang === 'ar' ? 'التاريخ' : 'Date'}</th>
               </tr>
             </thead>
             <tbody>
@@ -238,7 +239,7 @@ export default function InventoryPage() {
                 </td></tr>
               ) : transactions.map((tx: any) => (
                 <tr key={tx.id}>
-                  <td style={{ fontWeight: 500 }}>{tx.product_name}</td>
+                  <td className="sticky-col" style={{ fontWeight: 500 }}>{tx.product_name}</td>
                   <td>
                     <span style={{
                       background: txTypeColor(tx.type) + '18',
@@ -256,7 +257,7 @@ export default function InventoryPage() {
                   <td style={{ fontWeight: 600 }}>{tx.new_stock}</td>
                   <td style={{ color: '#6B7280' }}>{tx.reference || '—'}</td>
                   <td style={{ color: '#6B7280', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.notes || '—'}</td>
-                  <td style={{ fontSize: 12, color: '#6B7280' }}>
+                  <td className="sticky-col-right" style={{ fontSize: 12, color: '#6B7280' }}>
                     {new Date(tx.created_at).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
                       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                     })}
@@ -265,7 +266,7 @@ export default function InventoryPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
 
       {dialog.open && (

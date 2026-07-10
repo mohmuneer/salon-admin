@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { Plus, Pencil, Trash2, X, Check, DollarSign, Star } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 
 interface Currency {
   id: string
@@ -125,18 +126,18 @@ export default function CurrenciesPage() {
       )}
 
       <div className="card">
-        <div style={{ overflowX:'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>{lang==='ar'?'اسم العملة':'Name'}</th>
+                <th className="sticky-col">{lang==='ar'?'اسم العملة':'Name'}</th>
                 <th>{lang==='ar'?'الكود':'Code'}</th>
                 <th>{lang==='ar'?'الرمز':'Symbol'}</th>
                 <th>{lang==='ar'?'سعر الصرف':'Rate'}</th>
                 <th>{lang==='ar'?'الخانات العشرية':'Decimals'}</th>
                 <th>{lang==='ar'?'افتراضي':'Default'}</th>
                 <th>{tr.status}</th>
-                <th>{lang==='ar'?'الإجراءات':'Actions'}</th>
+                <th className="sticky-col-right">{lang==='ar'?'الإجراءات':'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -146,7 +147,7 @@ export default function CurrenciesPage() {
                 const editing = editingId === c.id
                 return (
                   <tr key={c.id}>
-                    <td style={{ fontWeight:600 }}>
+                    <td className="sticky-col" style={{ fontWeight:600 }}>
                       {editing ? (
                         <input className="input-field" style={{ width:140 }} value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
@@ -204,8 +205,8 @@ export default function CurrenciesPage() {
                         </span>
                       )}
                     </td>
-                    <td>
-                      <div style={{ display:'flex', gap:4 }}>
+                    <td className="sticky-col-right">
+                      <div className="action-buttons">
                         {editing ? (
                           <>
                             <button className="btn btn-primary btn-sm" onClick={saveEdit}><Check size={16} /></button>
@@ -230,7 +231,7 @@ export default function CurrenciesPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   )

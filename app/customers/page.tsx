@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import { Search } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 
 export default function CustomersPage() {
   const { lang } = useLang()
@@ -36,11 +37,11 @@ export default function CustomersPage() {
       </div>
 
       <div className="card">
-        <div style={{ overflowX:'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>{tr.name}</th>
+                <th className="sticky-col">{tr.name}</th>
                 <th>{tr.phone}</th>
                 <th>{tr.gender}</th>
                 <th>{lang==='ar'?'إجمالي المواعيد':'Total Appts'}</th>
@@ -54,7 +55,7 @@ export default function CustomersPage() {
                 <tr><td colSpan={7} style={{ textAlign:'center', padding:40, color:'#9CA3AF' }}>{tr.loading}</td></tr>
               ) : filtered.map((c: any) => (
                 <tr key={c.id}>
-                  <td>
+                  <td className="sticky-col">
                     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                       <div style={{
                         width:32, height:32, borderRadius:'50%',
@@ -78,7 +79,7 @@ export default function CustomersPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   )

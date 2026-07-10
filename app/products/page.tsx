@@ -6,6 +6,7 @@ import AddButton from '@/app/components/AddButton'
 import PriceInput from '@/components/PriceInput'
 import MediaGallery from '@/components/MediaGallery'
 import { AlertTriangle, Upload, Pencil, Trash2, X, Check, Search, Layers, Image, Eye, Warehouse, Boxes } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 
 export default function ProductsPage() {
   const { lang } = useLang()
@@ -241,11 +242,11 @@ export default function ProductsPage() {
       </div>
 
       <div className="card">
-        <div style={{ overflowX:'auto' }}>
+        <DataTable>
           <table className="data-table">
             <thead>
               <tr>
-                <th>{lang==='ar'?'صورة':'Image'}</th>
+                <th className="sticky-col">{lang==='ar'?'صورة':'Image'}</th>
                 <th>{tr.name}</th>
                 <th>{tr.department}</th>
                 <th>{lang==='ar'?'المجموعة':'Group'}</th>
@@ -258,7 +259,7 @@ export default function ProductsPage() {
                 <th>{lang==='ar'?'المتجر':'Store'}</th>
                 <th>{lang==='ar'?'جلسات':'Sessions'}</th>
                 <th>{tr.status}</th>
-                <th>{lang==='ar'?'إجراءات':'Actions'}</th>
+                <th className="sticky-col-right">{lang==='ar'?'إجراءات':'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -273,7 +274,7 @@ export default function ProductsPage() {
                   const cur = getCurrency(p.currency_id)
                   return (
                     <tr key={p.id}>
-                      <td style={{ position:'relative' }}>
+                      <td className="sticky-col" style={{ position:'relative' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                           {p.image_url ? (
                             <img src={p.image_url} alt="" style={{ width:40, height:40, borderRadius:6, objectFit:'cover' }} />
@@ -374,8 +375,8 @@ export default function ProductsPage() {
                       <td>{p.sold_in_store ? '✓' : '—'}</td>
                       <td>{p.used_in_sessions ? '✓' : '—'}</td>
                       <td><span className={`badge ${p.is_active ? 'badge-confirmed' : 'badge-cancelled'}`}>{p.is_active ? tr.active : tr.inactive}</span></td>
-                      <td>
-                        <div style={{ display:'flex', gap:4 }}>
+                      <td className="sticky-col-right">
+                        <div className="action-buttons">
                           {editing ? (
                             <>
                               <button className="btn btn-primary btn-sm" onClick={saveEdit} title={tr.save}><Check size={16} /></button>
@@ -408,7 +409,7 @@ export default function ProductsPage() {
                       const cur = getCurrency(p.currency_id)
                       return (
                         <tr key={p.id}>
-                          <td>
+                          <td className="sticky-col">
                             {p.image_url ? (
                               <img src={p.image_url} alt="" style={{ width:40, height:40, borderRadius:6, objectFit:'cover' }} />
                             ) : (
@@ -500,8 +501,8 @@ export default function ProductsPage() {
                           <td>{p.sold_in_store ? '✓' : '—'}</td>
                           <td>{p.used_in_sessions ? '✓' : '—'}</td>
                           <td><span className={`badge ${p.is_active ? 'badge-confirmed' : 'badge-cancelled'}`}>{p.is_active ? tr.active : tr.inactive}</span></td>
-                          <td>
-                            <div style={{ display:'flex', gap:4 }}>
+                          <td className="sticky-col-right">
+                            <div className="action-buttons">
                               {editing ? (
                                 <>
                                   <button className="btn btn-primary btn-sm" onClick={saveEdit} title={tr.save}><Check size={16} /></button>
@@ -524,7 +525,7 @@ export default function ProductsPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   )

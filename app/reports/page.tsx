@@ -7,6 +7,7 @@ import ReportColumnToggle from '@/components/ReportColumnToggle'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { Search, Printer, FileSpreadsheet, Download, BarChart3, Table2 } from 'lucide-react'
 import ChartWrapper from '@/components/ChartWrapper'
+import DataTable from '@/app/components/DataTable'
 import { useSalonSettings } from '@/lib/useSalonSettings'
 
 const COLORS = ['var(--gold)','var(--gold-light)','#1A1A2E','#6B7280','#10B981']
@@ -249,11 +250,10 @@ export default function ReportsPage() {
             <div className="card-header">
               <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>{tr.topServices}</h2>
             </div>
-            <div style={{ overflowX:'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
+            <DataTable>
+              <thead>
+                <tr>
+                  <th className="sticky-col">#</th>
                     <th>{lang==='ar'?'اسم الخدمة':'Service Name'}</th>
                     <th>{lang==='ar'?'عدد الحجوزات':'Bookings'}</th>
                     <th>{tr.totalRevenue}</th>
@@ -262,15 +262,14 @@ export default function ReportsPage() {
                 <tbody>
                   {topServices.map((s: any, i: number) => (
                     <tr key={i}>
-                      <td style={{ fontWeight:700, color:'var(--gold)' }}>#{i+1}</td>
+                      <td className="sticky-col" style={{ fontWeight:700, color:'var(--gold)' }}>#{i+1}</td>
                       <td style={{ fontWeight:500 }}>{s.name_ar}</td>
                       <td>{s.bookings}</td>
                       <td style={{ fontWeight:600, color:'var(--gold)' }}>{Number(s.revenue).toLocaleString()} {tr.sar}</td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           </div>
         </div>
       </div>
@@ -396,11 +395,10 @@ export default function ReportsPage() {
           ) : filteredRows.length === 0 ? (
             <div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.noData}</div>
           ) : (
-            <div style={{ overflowX:'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th style={{ width:40 }}>#</th>
+            <DataTable>
+              <thead>
+                <tr>
+                  <th className="sticky-col" style={{ width:40 }}>#</th>
                     {visibleCols.map(col => (
                       <th key={col.key}>{lang === 'ar' ? col.labelAr : col.labelEn}</th>
                     ))}
@@ -409,7 +407,7 @@ export default function ReportsPage() {
                 <tbody>
                   {filteredRows.map((row: any, i: number) => (
                     <tr key={row.id || i}>
-                      <td style={{ color:'#9CA3AF', fontSize:12 }}>{i+1}</td>
+                      <td className="sticky-col" style={{ color:'#9CA3AF', fontSize:12 }}>{i+1}</td>
                       {visibleCols.map(col => {
                         const val = row[col.key]
                         return (
@@ -434,8 +432,7 @@ export default function ReportsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           )}
         </div>
       )}

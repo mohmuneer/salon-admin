@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Eye, Check, X, RefreshCw, FileText, CreditCard, Search, ChevronDown, AlertTriangle } from 'lucide-react'
+import DataTable from '@/app/components/DataTable'
 
 type Status = 'all' | 'pending' | 'verified' | 'rejected'
 type PaymentReceipt = {
@@ -132,11 +133,11 @@ export default function PaymentsPage() {
         </div>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div className="table-wrapper">
+          <DataTable>
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ paddingInlineStart: 20 }}>#</th>
+                  <th className="sticky-col" style={{ paddingInlineStart: 20 }}>#</th>
                   <th>العميل</th>
                   <th>رقم الجوال</th>
                   <th>المبلغ</th>
@@ -144,13 +145,13 @@ export default function PaymentsPage() {
                   <th>التاريخ</th>
                   <th>الحالة</th>
                   <th>سند الحوالة</th>
-                  <th>الإجراء</th>
+                  <th className="sticky-col-right">الإجراء</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(row => (
                   <tr key={row.id}>
-                    <td style={{ paddingInlineStart: 20 }}>
+                    <td className="sticky-col" style={{ paddingInlineStart: 20 }}>
                       <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 13 }}>#{row.id}</span>
                       {row.order_id && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>طلب: {row.order_id}</div>}
                     </td>
@@ -194,8 +195,8 @@ export default function PaymentsPage() {
                         <Eye size={13} /> عرض السند
                       </button>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <td className="sticky-col-right">
+                      <div className="action-buttons">
                         {row.status !== 'verified' && (
                           <button disabled={updating === row.id} onClick={() => updateStatus(row.id, 'verified')}
                             style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(16,185,129,0.12)', color: '#10B981', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', opacity: updating === row.id ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -218,7 +219,7 @@ export default function PaymentsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </DataTable>
         </div>
       )}
 

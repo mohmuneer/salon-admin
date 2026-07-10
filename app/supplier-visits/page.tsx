@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
+import DataTable from '@/app/components/DataTable'
 import { CalendarCheck, Search, Truck, Building2, MessageSquare, FileText } from 'lucide-react'
 
 const VISIT_STATUSES = ['pending', 'approved', 'rejected', 'completed', 'cancelled']
@@ -92,17 +93,16 @@ export default function SupplierVisitsPage() {
       </div>
 
       <div className="card">
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{isAr ? 'المورد' : 'Supplier'}</th>
+        <DataTable>
+          <thead>
+            <tr>
+              <th className="sticky-col">{isAr ? 'المورد' : 'Supplier'}</th>
                 <th>{isAr ? 'الفرع' : 'Branch'}</th>
                 <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
                 <th>{isAr ? 'سبب الزيارة' : 'Purpose'}</th>
                 <th>{isAr ? 'المرفق' : 'Attachment'}</th>
                 <th>{tr.status}</th>
-                <th>{tr.actions}</th>
+                <th className="sticky-col-right">{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ export default function SupplierVisitsPage() {
                 <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
               ) : filtered.map((v: any) => (
                 <tr key={v.id}>
-                  <td>
+                  <td className="sticky-col">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Truck size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                       <div>
@@ -150,16 +150,17 @@ export default function SupplierVisitsPage() {
                     ) : '—'}
                   </td>
                   <td><span className={`badge ${STATUS_BADGE[v.status]}`}>{isAr ? STATUS_LABELS[v.status].ar : STATUS_LABELS[v.status].en}</span></td>
-                  <td>
-                    <select value={v.status} onChange={e => updateStatus(v.id, e.target.value)} className="btn btn-chip">
-                      {VISIT_STATUSES.map(s => <option key={s} value={s}>{isAr ? STATUS_LABELS[s].ar : STATUS_LABELS[s].en}</option>)}
-                    </select>
+                  <td className="sticky-col-right">
+                    <div className="action-buttons">
+                      <select value={v.status} onChange={e => updateStatus(v.id, e.target.value)} className="btn btn-chip">
+                        {VISIT_STATUSES.map(s => <option key={s} value={s}>{isAr ? STATUS_LABELS[s].ar : STATUS_LABELS[s].en}</option>)}
+                      </select>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   )
