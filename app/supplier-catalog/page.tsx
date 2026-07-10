@@ -429,7 +429,7 @@ export default function SupplierCatalogPage() {
       <DataTable>
             <thead>
               <tr>
-                <th className="sticky-col">{isAr ? 'المورد' : 'Supplier'}</th>
+                <th className="">{isAr ? 'المورد' : 'Supplier'}</th>
                 <th>{isAr ? 'الصنف' : 'Product'}</th>
                 <th>{isAr ? 'رقم صنف المورد' : 'Supplier SKU'}</th>
                 <th>{isAr ? 'اسم الصنف لدى المورد' : 'Supplier Item Name'}</th>
@@ -440,7 +440,7 @@ export default function SupplierCatalogPage() {
                 <th>{isAr ? 'الأولوية' : 'Priority'}</th>
                 <th>{isAr ? 'افتراضي' : 'Default'}</th>
                 <th>{isAr ? 'فترة التعاقد' : 'Contract Period'}</th>
-                <th className="sticky-col-right">{tr.actions}</th>
+                <th className="">{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -450,7 +450,7 @@ export default function SupplierCatalogPage() {
                 <tr><td colSpan={12} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
               ) : filtered.map((e: any) => (
                 <tr key={e.id}>
-                  <td className="sticky-col">
+                  <td className="">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Truck size={13} style={{ color: 'var(--primary)' }} />
                       {isAr ? e.supplier_name_ar : (e.supplier_name_en || e.supplier_name_ar)}
@@ -483,7 +483,7 @@ export default function SupplierCatalogPage() {
                       </span>
                     ) : '—'}
                   </td>
-                  <td className="sticky-col-right">
+                  <td className="">
                     <div className="action-buttons">
                       <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'} onClick={() => openEdit(e)}>
                         <Pencil size={15} color="var(--primary)" />

@@ -253,7 +253,7 @@ export default function ReportsPage() {
             <DataTable>
               <thead>
                 <tr>
-                  <th className="sticky-col">#</th>
+                  <th className="">#</th>
                     <th>{lang==='ar'?'اسم الخدمة':'Service Name'}</th>
                     <th>{lang==='ar'?'عدد الحجوزات':'Bookings'}</th>
                     <th>{tr.totalRevenue}</th>
@@ -262,7 +262,7 @@ export default function ReportsPage() {
                 <tbody>
                   {topServices.map((s: any, i: number) => (
                     <tr key={i}>
-                      <td className="sticky-col" style={{ fontWeight:700, color:'var(--gold)' }}>#{i+1}</td>
+                      <td className="" style={{ fontWeight:700, color:'var(--gold)' }}>#{i+1}</td>
                       <td style={{ fontWeight:500 }}>{s.name_ar}</td>
                       <td>{s.bookings}</td>
                       <td style={{ fontWeight:600, color:'var(--gold)' }}>{Number(s.revenue).toLocaleString()} {tr.sar}</td>
@@ -398,7 +398,7 @@ export default function ReportsPage() {
             <DataTable>
               <thead>
                 <tr>
-                  <th className="sticky-col" style={{ width:40 }}>#</th>
+                  <th className="" style={{ width:40 }}>#</th>
                     {visibleCols.map(col => (
                       <th key={col.key}>{lang === 'ar' ? col.labelAr : col.labelEn}</th>
                     ))}
@@ -407,7 +407,7 @@ export default function ReportsPage() {
                 <tbody>
                   {filteredRows.map((row: any, i: number) => (
                     <tr key={row.id || i}>
-                      <td className="sticky-col" style={{ color:'#9CA3AF', fontSize:12 }}>{i+1}</td>
+                      <td className="" style={{ color:'#9CA3AF', fontSize:12 }}>{i+1}</td>
                       {visibleCols.map(col => {
                         const val = row[col.key]
                         return (

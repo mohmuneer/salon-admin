@@ -69,14 +69,14 @@ export default function AppointmentsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="sticky-col">{tr.customer}</th>
+                <th className="">{tr.customer}</th>
                 <th>{tr.service}</th>
                 <th>{tr.staff_member}</th>
                 <th>{tr.date}</th>
                 <th>{tr.time}</th>
                 <th>{tr.total}</th>
                 <th>{tr.status}</th>
-                <th className="sticky-col-right">{tr.actions}</th>
+                <th className="">{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -86,7 +86,7 @@ export default function AppointmentsPage() {
                 <tr><td colSpan={8} style={{ textAlign:'center', padding:40, color:'#9CA3AF' }}>{tr.noData}</td></tr>
               ) : appts.map((a: any) => (
                 <tr key={a.id}>
-                  <td className="sticky-col">
+                  <td className="">
                     <div style={{ fontWeight:500 }}>{a.customer_name}</div>
                     <div style={{ fontSize:12, color:'#9CA3AF' }}>{a.customer_phone}</div>
                   </td>
@@ -96,7 +96,7 @@ export default function AppointmentsPage() {
                   <td>{a.start_time?.slice(0,5)} - {a.end_time?.slice(0,5)}</td>
                   <td style={{ fontWeight:600, color:'var(--gold)' }}>{Number(a.total||0).toLocaleString()} {tr.sar}</td>
                   <td><span className={`badge badge-${a.status}`}>{tr[a.status as keyof typeof tr] || a.status}</span></td>
-                  <td className="sticky-col-right">
+                  <td className="">
                     <div className="action-buttons">
                     <select
                       value={a.status}

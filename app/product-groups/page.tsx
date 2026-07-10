@@ -151,12 +151,12 @@ export default function ProductGroupsPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th className="sticky-col">{isAr ? 'اسم المجموعة' : 'Name'}</th>
+              <th className="">{isAr ? 'اسم المجموعة' : 'Name'}</th>
               <th>{isAr ? 'المخازن' : 'Warehouses'}</th>
               <th>{isAr ? 'المنتجات' : 'Products'}</th>
               <th>{tr.status}</th>
               <th>{isAr ? 'تاريخ الإضافة' : 'Created'}</th>
-              <th className="sticky-col-right">{tr.actions}</th>
+              <th className="">{tr.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -200,7 +200,7 @@ export default function ProductGroupsPage() {
                   </td>
                 ) : (
                   <>
-                    <td className="sticky-col">
+                    <td className="">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Boxes size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                         <div>
@@ -237,7 +237,7 @@ export default function ProductGroupsPage() {
                       <CalendarDays size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
                       {g.created_at ? new Date(g.created_at).toLocaleDateString(isAr ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                     </td>
-                    <td className="sticky-col-right">
+                    <td className="">
                       <div className="action-buttons">
                         <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'}
                           onClick={() => {

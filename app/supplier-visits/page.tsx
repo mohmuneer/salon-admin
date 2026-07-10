@@ -96,13 +96,13 @@ export default function SupplierVisitsPage() {
         <DataTable>
           <thead>
             <tr>
-              <th className="sticky-col">{isAr ? 'المورد' : 'Supplier'}</th>
+              <th className="">{isAr ? 'المورد' : 'Supplier'}</th>
                 <th>{isAr ? 'الفرع' : 'Branch'}</th>
                 <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
                 <th>{isAr ? 'سبب الزيارة' : 'Purpose'}</th>
                 <th>{isAr ? 'المرفق' : 'Attachment'}</th>
                 <th>{tr.status}</th>
-                <th className="sticky-col-right">{tr.actions}</th>
+                <th className="">{tr.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ export default function SupplierVisitsPage() {
                 <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
               ) : filtered.map((v: any) => (
                 <tr key={v.id}>
-                  <td className="sticky-col">
+                  <td className="">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Truck size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                       <div>
@@ -150,7 +150,7 @@ export default function SupplierVisitsPage() {
                     ) : '—'}
                   </td>
                   <td><span className={`badge ${STATUS_BADGE[v.status]}`}>{isAr ? STATUS_LABELS[v.status].ar : STATUS_LABELS[v.status].en}</span></td>
-                  <td className="sticky-col-right">
+                  <td className="">
                     <div className="action-buttons">
                       <select value={v.status} onChange={e => updateStatus(v.id, e.target.value)} className="btn btn-chip">
                         {VISIT_STATUSES.map(s => <option key={s} value={s}>{isAr ? STATUS_LABELS[s].ar : STATUS_LABELS[s].en}</option>)}

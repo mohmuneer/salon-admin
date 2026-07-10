@@ -246,7 +246,7 @@ export default function ProductsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="sticky-col">{lang==='ar'?'صورة':'Image'}</th>
+                <th className="">{lang==='ar'?'صورة':'Image'}</th>
                 <th>{tr.name}</th>
                 <th>{tr.department}</th>
                 <th>{lang==='ar'?'المجموعة':'Group'}</th>
@@ -259,7 +259,7 @@ export default function ProductsPage() {
                 <th>{lang==='ar'?'المتجر':'Store'}</th>
                 <th>{lang==='ar'?'جلسات':'Sessions'}</th>
                 <th>{tr.status}</th>
-                <th className="sticky-col-right">{lang==='ar'?'إجراءات':'Actions'}</th>
+                <th className="">{lang==='ar'?'إجراءات':'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -274,7 +274,7 @@ export default function ProductsPage() {
                   const cur = getCurrency(p.currency_id)
                   return (
                     <tr key={p.id}>
-                      <td className="sticky-col" style={{ position:'relative' }}>
+                      <td className="" style={{ position:'relative' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                           {p.image_url ? (
                             <img src={p.image_url} alt="" style={{ width:40, height:40, borderRadius:6, objectFit:'cover' }} />
@@ -375,7 +375,7 @@ export default function ProductsPage() {
                       <td>{p.sold_in_store ? '✓' : '—'}</td>
                       <td>{p.used_in_sessions ? '✓' : '—'}</td>
                       <td><span className={`badge ${p.is_active ? 'badge-confirmed' : 'badge-cancelled'}`}>{p.is_active ? tr.active : tr.inactive}</span></td>
-                      <td className="sticky-col-right">
+                      <td className="">
                         <div className="action-buttons">
                           {editing ? (
                             <>
@@ -409,7 +409,7 @@ export default function ProductsPage() {
                       const cur = getCurrency(p.currency_id)
                       return (
                         <tr key={p.id}>
-                          <td className="sticky-col">
+                          <td className="">
                             {p.image_url ? (
                               <img src={p.image_url} alt="" style={{ width:40, height:40, borderRadius:6, objectFit:'cover' }} />
                             ) : (
@@ -501,7 +501,7 @@ export default function ProductsPage() {
                           <td>{p.sold_in_store ? '✓' : '—'}</td>
                           <td>{p.used_in_sessions ? '✓' : '—'}</td>
                           <td><span className={`badge ${p.is_active ? 'badge-confirmed' : 'badge-cancelled'}`}>{p.is_active ? tr.active : tr.inactive}</span></td>
-                          <td className="sticky-col-right">
+                          <td className="">
                             <div className="action-buttons">
                               {editing ? (
                                 <>

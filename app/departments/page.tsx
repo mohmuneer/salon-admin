@@ -284,7 +284,7 @@ export default function DepartmentsPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th className="sticky-col" style={{ width: 56 }}>{isAr ? 'صورة' : 'Image'}</th>
+              <th className="" style={{ width: 56 }}>{isAr ? 'صورة' : 'Image'}</th>
               <th>{isAr ? 'اسم القسم' : 'Name'}</th>
               <th>{tr.branch}</th>
               <th>{isAr ? 'موظفون' : 'Staff'}</th>
@@ -292,7 +292,7 @@ export default function DepartmentsPage() {
               <th>{isAr ? 'منتجات' : 'Products'}</th>
               <th>{tr.status}</th>
               <th>{isAr ? 'تاريخ الإضافة' : 'Created'}</th>
-              <th className="sticky-col-right">{tr.actions}</th>
+              <th className="">{tr.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -379,7 +379,7 @@ export default function DepartmentsPage() {
                 ) : (
                   <>
                     {/* ── Image cell ── */}
-                    <td className="sticky-col">
+                    <td className="">
                       {d.image_url ? (
                         <img
                           src={d.image_url}
@@ -459,7 +459,7 @@ export default function DepartmentsPage() {
                     </td>
 
                     {/* Actions */}
-                    <td className="sticky-col-right">
+                    <td className="">
                       <div className="action-buttons">
                         <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'}
                           onClick={() => {

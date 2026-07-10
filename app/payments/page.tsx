@@ -137,7 +137,7 @@ export default function PaymentsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th className="sticky-col" style={{ paddingInlineStart: 20 }}>#</th>
+                  <th className="" style={{ paddingInlineStart: 20 }}>#</th>
                   <th>العميل</th>
                   <th>رقم الجوال</th>
                   <th>المبلغ</th>
@@ -145,13 +145,13 @@ export default function PaymentsPage() {
                   <th>التاريخ</th>
                   <th>الحالة</th>
                   <th>سند الحوالة</th>
-                  <th className="sticky-col-right">الإجراء</th>
+                  <th className="">الإجراء</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(row => (
                   <tr key={row.id}>
-                    <td className="sticky-col" style={{ paddingInlineStart: 20 }}>
+                    <td className="" style={{ paddingInlineStart: 20 }}>
                       <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 13 }}>#{row.id}</span>
                       {row.order_id && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>طلب: {row.order_id}</div>}
                     </td>
@@ -195,7 +195,7 @@ export default function PaymentsPage() {
                         <Eye size={13} /> عرض السند
                       </button>
                     </td>
-                    <td className="sticky-col-right">
+                    <td className="">
                       <div className="action-buttons">
                         {row.status !== 'verified' && (
                           <button disabled={updating === row.id} onClick={() => updateStatus(row.id, 'verified')}

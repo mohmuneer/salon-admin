@@ -498,7 +498,7 @@ function ItemsTab({ supplierId }: { supplierId: string }) {
         <DataTable>
           <thead>
             <tr>
-              <th className="sticky-col">الصنف</th>
+              <th className="">الصنف</th>
                 <th>بيانات المورد</th>
                 <th>السعر</th>
                 <th>الكمية المباعة</th>
@@ -512,7 +512,7 @@ function ItemsTab({ supplierId }: { supplierId: string }) {
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>لا توجد نتائج</td></tr>
               ) : items.map((it: any) => (
                 <tr key={it.catalog_id}>
-                  <td className="sticky-col">
+                  <td className="">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       {it.is_default && <Star size={12} color="#F59E0B" fill="#F59E0B" />}
                       {it.name_ar}

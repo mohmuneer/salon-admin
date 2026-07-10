@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/app/layout'
 import { t } from '@/lib/translations'
 import {
-  Warehouse, Building2, Layers, Pencil, Trash2, X, Check, CalendarDays, GripVertical,
+  Warehouse, Building2, Layers, Pencil, Trash2, X, Check, CalendarDays,
 } from 'lucide-react'
 import AddButton from '@/app/components/AddButton'
 import DataTable from '@/app/components/DataTable'
@@ -182,24 +182,23 @@ export default function WarehousesPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th className="sticky-col" style={{ width: 40 }}></th>
-              <th className="sticky-col">{isAr ? 'اسم المخزن' : 'Name'}</th>
+              <th>{isAr ? 'اسم المخزن' : 'Name'}</th>
               <th>{isAr ? 'المجموعة' : 'Group'}</th>
               <th>{isAr ? 'الفروع' : 'Branches'}</th>
               <th>{isAr ? 'الأقسام' : 'Departments'}</th>
               <th>{tr.status}</th>
-              <th className="sticky-col-right">{tr.actions}</th>
+              <th>{tr.actions}</th>
             </tr>
           </thead>
           <DraggableBody onReorder={handleReorder}>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.loading}</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.loading}</td></tr>
             ) : warehouses.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>{tr.noData}</td></tr>
             ) : warehouses.map((w: any) => (
               <tr key={w.id} data-id={w.id} style={{ opacity: w.is_active ? 1 : 0.5 }}>
                 {editingId === w.id ? (
-                  <td colSpan={7} style={{ padding: 20 }}>
+                  <td colSpan={6} style={{ padding: 20 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{isAr ? 'الاسم (عربي)' : 'Name (Arabic)'} *</label>
@@ -247,10 +246,7 @@ export default function WarehousesPage() {
                   </td>
                 ) : (
                   <>
-                    <td className="sticky-col" style={{ width: 40 }}>
-                      <span className="drag-handle"><GripVertical size={16} /></span>
-                    </td>
-                    <td className="sticky-col">
+                    <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Warehouse size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                         <div>
@@ -294,7 +290,7 @@ export default function WarehousesPage() {
                         {w.is_active ? tr.active : tr.inactive}
                       </span>
                     </td>
-                    <td className="sticky-col-right">
+                    <td>
                       <div className="action-buttons">
                         <button className="btn btn-icon" title={isAr ? 'تعديل' : 'Edit'}
                           onClick={() => {

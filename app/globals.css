@@ -736,68 +736,6 @@ body[dir="rtl"] .sidebar.collapsed .nav-link .nav-tooltip {
 }
 
 /* ─── Sticky Columns ─────────────────────────────────────── */
-.data-table .sticky-col {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--card);
-}
-.data-table .sticky-col::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -1px;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-}
-.data-table thead .sticky-col {
-  z-index: 4;
-}
-.data-table tbody tr:hover .sticky-col {
-  background: var(--primary-bg);
-}
-
-.data-table .sticky-col-right {
-  position: sticky;
-  right: 0;
-  z-index: 2;
-  background: var(--card);
-}
-.data-table .sticky-col-right::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -1px;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-}
-.data-table thead .sticky-col-right {
-  z-index: 4;
-}
-.data-table tbody tr:hover .sticky-col-right {
-  background: var(--primary-bg);
-}
-
-/* RTL sticky column swap */
-body[dir="rtl"] .data-table .sticky-col {
-  left: auto;
-  right: 0;
-}
-body[dir="rtl"] .data-table .sticky-col::after {
-  right: auto;
-  left: -1px;
-}
-body[dir="rtl"] .data-table .sticky-col-right {
-  right: auto;
-  left: 0;
-}
-body[dir="rtl"] .data-table .sticky-col-right::before {
-  left: auto;
-  right: -1px;
-}
-
 /* ─── Action Buttons Group ───────────────────────────────── */
 .action-buttons {
   display: flex;

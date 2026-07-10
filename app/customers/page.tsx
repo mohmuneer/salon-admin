@@ -41,7 +41,7 @@ export default function CustomersPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="sticky-col">{tr.name}</th>
+                <th className="">{tr.name}</th>
                 <th>{tr.phone}</th>
                 <th>{tr.gender}</th>
                 <th>{lang==='ar'?'إجمالي المواعيد':'Total Appts'}</th>
@@ -55,7 +55,7 @@ export default function CustomersPage() {
                 <tr><td colSpan={7} style={{ textAlign:'center', padding:40, color:'#9CA3AF' }}>{tr.loading}</td></tr>
               ) : filtered.map((c: any) => (
                 <tr key={c.id}>
-                  <td className="sticky-col">
+                  <td className="">
                     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                       <div style={{
                         width:32, height:32, borderRadius:'50%',

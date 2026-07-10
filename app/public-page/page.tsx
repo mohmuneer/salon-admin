@@ -1592,7 +1592,7 @@ const [couponForm, setCouponForm] = useState<Record<string, any>>(emptyCoupon)
             <DataTable>
               <thead>
                 <tr>
-                  <th className="sticky-col">{lang === 'ar' ? 'العرض' : 'Offer'}</th>
+                  <th className="">{lang === 'ar' ? 'العرض' : 'Offer'}</th>
                     <th>{tr.views}</th>
                     <th>{tr.clicks}</th>
                     <th>{tr.bookings}</th>
@@ -1602,7 +1602,7 @@ const [couponForm, setCouponForm] = useState<Record<string, any>>(emptyCoupon)
                 <tbody>
                   {offers.filter(o => o.is_active).map(o => (
                     <tr key={o.id}>
-                      <td className="sticky-col" style={{ fontWeight: 600 }}>{o.title_ar}</td>
+                      <td className="" style={{ fontWeight: 600 }}>{o.title_ar}</td>
                       <td>{o.views_count || 0}</td>
                       <td>{o.clicks_count || 0}</td>
                       <td>{o.bookings_count || 0}</td>

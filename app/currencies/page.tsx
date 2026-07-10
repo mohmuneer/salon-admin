@@ -130,14 +130,14 @@ export default function CurrenciesPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="sticky-col">{lang==='ar'?'اسم العملة':'Name'}</th>
+                <th className="">{lang==='ar'?'اسم العملة':'Name'}</th>
                 <th>{lang==='ar'?'الكود':'Code'}</th>
                 <th>{lang==='ar'?'الرمز':'Symbol'}</th>
                 <th>{lang==='ar'?'سعر الصرف':'Rate'}</th>
                 <th>{lang==='ar'?'الخانات العشرية':'Decimals'}</th>
                 <th>{lang==='ar'?'افتراضي':'Default'}</th>
                 <th>{tr.status}</th>
-                <th className="sticky-col-right">{lang==='ar'?'الإجراءات':'Actions'}</th>
+                <th className="">{lang==='ar'?'الإجراءات':'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +147,7 @@ export default function CurrenciesPage() {
                 const editing = editingId === c.id
                 return (
                   <tr key={c.id}>
-                    <td className="sticky-col" style={{ fontWeight:600 }}>
+                    <td className="" style={{ fontWeight:600 }}>
                       {editing ? (
                         <input className="input-field" style={{ width:140 }} value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
@@ -205,7 +205,7 @@ export default function CurrenciesPage() {
                         </span>
                       )}
                     </td>
-                    <td className="sticky-col-right">
+                    <td className="">
                       <div className="action-buttons">
                         {editing ? (
                           <>
