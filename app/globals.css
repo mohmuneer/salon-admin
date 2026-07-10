@@ -1864,7 +1864,7 @@ body[dir="rtl"] .data-table .sticky-col-right::before {
   .card { border-radius: 12px; }
   .stat-card { border-radius: 12px; }
   .badge { font-size: 10px; padding: 2px 8px; }
-  .table-to-cards tbody tr { padding: 12px; }
+
   .modal-content { width: 98% !important; max-width: 98% !important; padding: 16px !important; border-radius: 16px !important; }
   .modal-overlay { padding: 8px; }
 }
@@ -2000,52 +2000,8 @@ body[dir="rtl"] .data-table .sticky-col-right::before {
   .btn-add { min-width: 54px; min-height: 54px; padding: 8px 14px; font-size: 10px; }
   .btn-add .add-icon { font-size: 18px; }
 
-  /* Convert wide tables to card layout on mobile */
-  table.data-table.responsive-cards,
-  .table-to-cards table.data-table {
-    border: 0;
-  }
-  .table-to-cards table.data-table thead,
-  table.data-table.responsive-cards thead {
-    display: none;
-  }
-  .table-to-cards table.data-table tbody tr,
-  table.data-table.responsive-cards tbody tr {
-    display: block;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
-    background: var(--card);
-  }
-  .table-to-cards table.data-table tbody tr:hover td,
-  table.data-table.responsive-cards tbody tr:hover td {
-    background: transparent;
-  }
-  .table-to-cards table.data-table tbody td,
-  table.data-table.responsive-cards tbody td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 8px 0;
-    border: none;
-    border-bottom: 1px solid var(--border-light);
-    font-size: 13px;
-    text-align: start;
-  }
-  .table-to-cards table.data-table tbody td:last-child,
-  table.data-table.responsive-cards tbody td:last-child {
-    border-bottom: none;
-  }
-  .table-to-cards table.data-table tbody td::before,
-  table.data-table.responsive-cards tbody td::before {
-    content: attr(data-label);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    flex-shrink: 0;
-  }
+  /* Tables: horizontal scroll on mobile, no card conversion */
+  .table-container { border-radius: 8px; }
 }
 
 /* 768px — iPad / small tablets landscape */
