@@ -179,7 +179,7 @@ export default function ServicesPage() {
         <div className="card" style={{ marginBottom:20 }}>
           <div className="card-header"><h2 style={{ fontSize:15, fontWeight:600 }}>{isAr?'إضافة خدمة جديدة':'Add New Service'}</h2></div>
           <div className="card-body">
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
               <div>
                 <label style={{ fontSize:13, color:'#6B7280', display:'block', marginBottom:6 }}><Building2 size={14} style={{ verticalAlign:'middle', marginInlineEnd:4 }} />{tr.branch}</label>
                 <select className="input-field" value={form.salon_id} onChange={e => setForm({ ...form, salon_id:e.target.value, department_id:'' })}>
@@ -323,7 +323,7 @@ export default function ServicesPage() {
 
               {editingId === s.id ? (
                 <>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+                  <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
                     <div>
                       <label style={{ fontSize:13, color:'#6B7280', display:'block', marginBottom:6 }}>{isAr?'الفرع':'Branch'}</label>
                       <select className="input-field" value={editForm.salon_id||''}

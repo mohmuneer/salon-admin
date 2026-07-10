@@ -131,7 +131,7 @@ export default function UsersPage() {
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 600 }}>{tr.addUserBtn}</h2></div>
           <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 13, color: '#6B7280', display: 'block', marginBottom: 6 }}>{tr.name}</label>
                 <input className="input-field" type="text" aria-label={tr.name} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
@@ -241,7 +241,7 @@ export default function UsersPage() {
 
               {editingId === u.id ? (
                 <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
                       <label style={{ fontSize: 13, color: '#6B7280', display: 'block', marginBottom: 6 }}>{tr.name}</label>
                       <input className="input-field" type="text" aria-label={tr.name} value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />

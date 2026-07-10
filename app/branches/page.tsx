@@ -67,7 +67,7 @@ export default function BranchesPage() {
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 600 }}>{tr.addBranch}</h2></div>
           <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {[
                 { label: tr.branchNameAr, key: 'name', type: 'text' },
                 { label: tr.branchNameEn, key: 'name_en', type: 'text' },
@@ -113,7 +113,7 @@ export default function BranchesPage() {
             <div style={{ padding: 20 }}>
               {editingId === b.id ? (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     {[
                       { label: tr.branchNameAr, key: 'name', type: 'text' },
                       { label: tr.branchNameEn, key: 'name_en', type: 'text' },

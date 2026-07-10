@@ -207,7 +207,7 @@ export default function ReportsPage() {
           ))}
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+        <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
           <div className="card">
             <div className="card-header">
               <h2 style={{ fontSize:15, fontWeight:600, color:'#1A1A2E' }}>{lang==='ar'?'الإيرادات حسب الخدمة':'Revenue by Service'}</h2>
@@ -444,7 +444,7 @@ export default function ReportsPage() {
         filteredRows.length === 0 ? (
           <div className="card"><div style={{ textAlign:'center', padding:48, color:'#9CA3AF' }}>{tr.noData}</div></div>
         ) : (
-          <div style={{ display:'grid', gridTemplateColumns: hasSecondChart ? '1fr 1fr' : '1fr', gap:20 }}>
+          <div className="grid-2" style={{ display:'grid', gridTemplateColumns: hasSecondChart ? '1fr 1fr' : '1fr', gap:20 }}>
             {activeTab === 'financial' ? (
               <div className="card" style={{ gridColumn: '1/-1' }}>
                 <div className="card-header">

@@ -232,7 +232,7 @@ export default function StaffPage() {
               </div>
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 14 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 14 }}>
               {[
                 { icon: Phone, label: tr.phone, value: s.phone },
                 { icon: Building2, label: tr.branch, value: isAr ? s.branch_name : (s.branch_name_en || s.branch_name || '—') },
@@ -308,7 +308,7 @@ export default function StaffPage() {
               </div>
             ) : (
             <div className="card-body">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
+              <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
                 <div>
                   <label style={{ fontSize: 12, color:'var(--text-secondary)', display:'block', marginBottom: 4, fontWeight: 500 }}>{tr.name}</label>
                   <input className="input-field" value={editForm.name||''} onChange={e => setEditForm({...editForm, name:e.target.value})} />

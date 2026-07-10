@@ -120,7 +120,7 @@ export default function SettingsPage() {
                 <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{lang === 'ar' ? 'العنوان' : 'Address'}</label>
                 <input className="input-field" type="text" value={form.address || ''} onChange={e => setForm((f: any) => ({ ...f, address: e.target.value }))} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{lang === 'ar' ? 'رقم الجوال' : 'Phone'}</label>
                   <input className="input-field" type="tel" value={form.phone || ''} onChange={e => setForm((f: any) => ({ ...f, phone: e.target.value }))} />
@@ -130,7 +130,7 @@ export default function SettingsPage() {
                   <input className="input-field" type="email" value={form.email || ''} onChange={e => setForm((f: any) => ({ ...f, email: e.target.value }))} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{lang === 'ar' ? 'فتح' : 'Opens'}</label>
                   <input className="input-field" type="time" value={form.opening_time || '10:00'} onChange={e => setForm((f: any) => ({ ...f, opening_time: e.target.value }))} />

@@ -202,7 +202,7 @@ function SocialLinksEditor({
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8', marginBottom: 10 }}>
               {isAr ? '+ إضافة منصة جديدة' : '+ Add new platform'}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               {/* اختيار المنصة */}
               <div>
                 <label style={{ fontSize: 12, color: '#6B7280', display: 'block', marginBottom: 5 }}>{isAr ? 'المنصة' : 'Platform'}</label>
@@ -1588,7 +1588,7 @@ const [couponForm, setCouponForm] = useState<Record<string, any>>(emptyCoupon)
           {/* Per-offer stats */}
           <div className="card" style={{ marginTop: 20 }}>
             <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 600 }}>{lang === 'ar' ? 'إحصائيات العروض' : 'Offer Stats'}</h2></div>
-            <div className="card-body" style={{ padding: 0 }}>
+            <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
               <table className="data-table">
                 <thead>
                   <tr>

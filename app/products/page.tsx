@@ -116,7 +116,7 @@ export default function ProductsPage() {
         <div className="card" style={{ marginBottom:20 }}>
           <div className="card-header"><h2 style={{ fontSize:15, fontWeight:600 }}>{lang==='ar'?'إضافة منتج جديد':'Add New Product'}</h2></div>
           <div className="card-body">
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+            <div className="grid-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
               <div>
                 <label style={{ fontSize:13, color:'#6B7280', display:'block', marginBottom:6 }}>{lang==='ar'?'اسم المنتج (عربي)':'Product Name (Arabic)'} <span style={{color:'#EF4444'}}>*</span></label>
                 <input className="input-field" type="text" value={form.name_ar}

@@ -223,7 +223,7 @@ export default function DepartmentsPage() {
                 </div>
 
                 {/* Names grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 13, color: '#6B7280', display: 'block', marginBottom: 6 }}>{isAr ? 'الاسم (عربي)' : 'Name (Arabic)'} *</label>
                     <input className="input-field" type="text" value={form.name_ar} onChange={e => setForm({ ...form, name_ar: e.target.value })} />
@@ -279,7 +279,7 @@ export default function DepartmentsPage() {
       )}
 
       {/* ── Table ── */}
-      <div className="table-container">
+      <div style={{ overflowX: 'auto' }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -305,7 +305,7 @@ export default function DepartmentsPage() {
                 {/* ── Edit row ── */}
                 {editingId === d.id ? (
                   <td colSpan={9} style={{ padding: 20 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       {/* Branch */}
                       <div>
                         <label style={{ fontSize: 12, color: '#6B7280', display: 'block', marginBottom: 4 }}>{tr.branch} *</label>

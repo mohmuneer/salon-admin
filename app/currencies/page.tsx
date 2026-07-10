@@ -91,7 +91,7 @@ export default function CurrenciesPage() {
         <div className="card" style={{ marginBottom:20 }}>
           <div className="card-header"><h2 style={{ fontSize:15, fontWeight:600 }}>{lang==='ar'?'إضافة عملة جديدة':'Add New Currency'}</h2></div>
           <div className="card-body">
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+            <div className="grid-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
               {[
                 { label: lang==='ar'?'اسم العملة':'Currency Name', key:'name', type:'text' },
                 { label: lang==='ar'?'الكود':'Code', key:'code', type:'text', placeholder:'SAR' },

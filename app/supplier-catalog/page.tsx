@@ -341,7 +341,7 @@ export default function SupplierCatalogPage() {
                 )}
 
                 {form.mode === 'single' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
                       <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'رقم صنف المورد' : 'Supplier SKU'}</label>
                       <input className="input-field" value={form.supplier_sku} onChange={e => setForm({ ...form, supplier_sku: e.target.value })} />
@@ -353,7 +353,7 @@ export default function SupplierCatalogPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'وحدة الشراء' : 'Purchase Unit'}</label>
                     <input className="input-field" value={form.purchase_unit} placeholder={isAr ? 'مثال: كرتون، علبة' : 'e.g. box, carton'} onChange={e => setForm({ ...form, purchase_unit: e.target.value })} />
@@ -369,7 +369,7 @@ export default function SupplierCatalogPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'السعر' : 'Price'}</label>
                     <input className="input-field" type="number" step="0.01" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
@@ -384,7 +384,7 @@ export default function SupplierCatalogPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'تاريخ بداية التعاقد' : 'Contract Start'}</label>
                     <input className="input-field" type="date" value={form.contract_start_date} onChange={e => setForm({ ...form, contract_start_date: e.target.value })} />
@@ -395,7 +395,7 @@ export default function SupplierCatalogPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{isAr ? 'أولوية المورد' : 'Supplier Priority'}</label>
                     <input className="input-field" type="number" min="0" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
