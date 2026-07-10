@@ -35,9 +35,11 @@ export async function POST(req: NextRequest) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+    const maxOrder = await client.query('SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM warehouses')
+    const nextOrder = maxOrder.rows[0].n
     const inserted = await client.query(
-      `INSERT INTO warehouses (name_ar, name_en, address, warehouse_group_id) VALUES ($1,$2,$3,$4) RETURNING id`,
-      [name_ar, name_en || null, address || null, warehouse_group_id || null]
+      `INSERT INTO warehouses (name_ar, name_en, address, warehouse_group_id, sort_order) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+      [name_ar, name_en || null, address || null, warehouse_group_id || null, nextOrder]
     )
     const warehouseId = inserted.rows[0].id
     for (const salonId of Array.isArray(branch_ids) ? branch_ids : []) {
@@ -69,7 +71,7 @@ export async function PUT(req: NextRequest) {
   try {
     await client.query('BEGIN')
     await client.query(
-      `UPDATE warehouses SET name_ar=$1, name_en=$2, address=$3, warehouse_group_id=$4, is_active=$5 WHERE id=$6`,
+      `UPDATE warehouses SET name_ar=$1, name_en=$2, address=$3, warehouse_group_id=$4, is_active=$5, sort_order=COALESCE(sort_order, (SELECT COALESCE(MAX(sort_order),0)+1 FROM warehouses)) WHERE id=$6`,
       [name_ar, name_en || null, address || null, warehouse_group_id || null, is_active, id]
     )
     await client.query(`DELETE FROM warehouse_branches WHERE warehouse_id=$1`, [id])
@@ -94,6 +96,30 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'DB error' }, { status: 500 })
   } finally {
     client.release()
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const { items } = await req.json()
+  if (!Array.isArray(items)) return NextResponse.json({ error: 'items array required' }, { status: 400 })
+  try {
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      for (const item of items) {
+        await client.query('UPDATE warehouses SET sort_order=$1 WHERE id=$2', [item.position, item.id])
+      }
+      await client.query('COMMIT')
+      return NextResponse.json({ ok: true })
+    } catch (err: any) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err: any) {
+    console.error('Warehouses PATCH error:', err)
+    return NextResponse.json({ error: err.message || 'DB error' }, { status: 500 })
   }
 }
 

@@ -7,11 +7,12 @@ interface DataTableProps {
   className?: string
   insideCard?: boolean
   maxHeight?: string | number
+  disableDragScroll?: boolean
 }
 
 const DRAG_THRESHOLD = 5
 
-export default function DataTable({ children, className = '', insideCard = false, maxHeight }: DataTableProps) {
+export default function DataTable({ children, className = '', insideCard = false, maxHeight, disableDragScroll }: DataTableProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const s = useRef({ down: false, startX: 0, startY: 0, scrollX: 0, scrollY: 0, moved: false })
 
@@ -49,6 +50,7 @@ export default function DataTable({ children, className = '', insideCard = false
   }, [])
 
   useEffect(() => {
+    if (disableDragScroll) return
     const el = containerRef.current
     if (!el) return
 
@@ -86,7 +88,7 @@ export default function DataTable({ children, className = '', insideCard = false
       el.removeEventListener('touchmove', touchMove)
       el.removeEventListener('touchend', touchEnd)
     }
-  }, [onStart, onMove, onEnd, handleClickCapture])
+  }, [onStart, onMove, onEnd, handleClickCapture, disableDragScroll])
 
   return (
     <div

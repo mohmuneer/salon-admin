@@ -839,6 +839,45 @@ body[dir="rtl"] .data-table .sticky-col-right::before {
   display: block;
 }
 
+/* ─── SortableJS drag states ─────────────────────────── */
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--primary-bg) !important;
+  outline: 2px dashed var(--primary);
+  outline-offset: -2px;
+}
+.sortable-chosen {
+  background: var(--primary-bg) !important;
+}
+.sortable-drag {
+  background: var(--card) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  opacity: 0.95;
+}
+.sortable-drag td { background: var(--card) !important; }
+.sortable-ghost td { background: transparent !important; }
+.sortable-ghost td:first-child { border-radius: 10px 0 0 10px; }
+.sortable-ghost td:last-child { border-radius: 0 10px 10px 0; }
+
+/* Drag handle for draggable rows */
+.drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.drag-handle:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+.sortable-drag .drag-handle { cursor: grabbing; }
+
 /* ─── Legacy table-wrapper ───────────────────────────── */
 .table-wrapper {
   overflow-x: auto;
