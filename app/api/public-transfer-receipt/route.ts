@@ -101,10 +101,16 @@ export async function POST(req: Request) {
     if (blobUrl) {
       receipt_url = blobUrl
     } else {
-      const adminDir = path.join(process.cwd(), 'public', 'uploads')
-      await mkdir(adminDir, { recursive: true })
-      await writeFile(path.join(adminDir, filename), compressed)
-      receipt_url = `/api/uploads/${filename}`
+      // Vercel: writable only at /tmp; local dev: public/uploads
+      const isVercel = !!process.env.VERCEL
+      const uploadDir = isVercel
+        ? path.join('/tmp', 'uploads')
+        : path.join(process.cwd(), 'public', 'uploads')
+      await mkdir(uploadDir, { recursive: true })
+      await writeFile(path.join(uploadDir, filename), compressed)
+      receipt_url = isVercel
+        ? `/api/uploads/${filename}`
+        : `/api/uploads/${filename}`
     }
 
     const receiptResult = await pool.query(

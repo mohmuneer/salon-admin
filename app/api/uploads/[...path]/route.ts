@@ -4,7 +4,11 @@ import path from 'path'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await params
-  const filePath = path.join(process.cwd(), 'public', 'uploads', ...segments)
+  const isVercel = !!process.env.VERCEL
+  const baseDir = isVercel
+    ? path.join('/tmp', 'uploads')
+    : path.join(process.cwd(), 'public', 'uploads')
+  const filePath = path.join(baseDir, ...segments)
   try {
     const buffer = await readFile(filePath)
     const ext = path.extname(filePath).toLowerCase()
