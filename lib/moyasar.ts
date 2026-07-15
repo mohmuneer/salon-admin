@@ -34,19 +34,18 @@ export async function fetchMoyasarPayment(paymentId: string): Promise<MoyasarPay
 
 /**
  * Verify a Moyasar payment and, if valid, mark the order and/or appointments
- * it covers as paid. Mirrors the same "one payment can cover an order plus
- * several booked appointments together" shape already used by the manual
- * bank-transfer flow (payment_receipts.order_id + appointment_ids), so a
- * single "pay all" checkout works the same way regardless of payment method.
+ * it covers as paid.
+ *
+ * Supports three order types:
+ * - product: only an order (no appointment needed)
+ * - service: an order + appointments
+ * - mixed: an order (with both product & service items) + appointments
  *
  * Always re-fetches the payment from Moyasar's API server-side rather than
  * trusting the redirect/webhook payload, and checks the amount against the
- * real DB totals - never trust the gateway (or the client) alone for the
- * amount, same principle as the manual bank-transfer verification and the
- * price-tampering fixes elsewhere in this app.
+ * real DB totals.
  *
- * Idempotent: safe to call multiple times for the same payment (e.g. once
- * from the callback redirect and again from the webhook).
+ * Idempotent: safe to call multiple times for the same payment.
  */
 export async function confirmGatewayPayment(params: {
   orderId?: string | null
@@ -57,32 +56,50 @@ export async function confirmGatewayPayment(params: {
   const appointmentIds = (params.appointmentIds || []).filter(Boolean)
   const { moyasarPaymentId } = params
 
+  /* ── Validate that we have at least one reference ── */
   if (!orderId && appointmentIds.length === 0) {
     return { ok: false, error: 'لا يوجد طلب أو موعد مرتبط بهذا الدفع' }
   }
 
+  /* ── Look up order (if provided) ── */
   let expected = 0
-  let order: { total: number; payment_status: string } | null = null
+  let order: { total: number; payment_status: string; order_type: string } | null = null
   if (orderId) {
-    const o = await pool.query('SELECT total, payment_status FROM orders WHERE id = $1', [orderId])
+    const o = await pool.query('SELECT total, payment_status, order_type FROM orders WHERE id = $1', [orderId])
     if (o.rows.length === 0) return { ok: false, error: 'الطلب غير موجود' }
     order = o.rows[0]
     expected += Number(order!.total) || 0
   }
 
+  /* ── Look up appointments (if provided) ── */
   let appointments: { id: string; total: number }[] = []
   if (appointmentIds.length > 0) {
     const a = await pool.query('SELECT id, total FROM appointments WHERE id = ANY($1::uuid[])', [appointmentIds])
     if (a.rows.length !== appointmentIds.length) return { ok: false, error: 'بعض المواعيد غير صحيحة' }
     appointments = a.rows
-    expected += appointments.reduce((s, r) => s + (Number(r.total) || 0), 0)
+    // For mixed/service orders, the appointment total is included in the order total
+    // Only add appointment totals separately for legacy flows where order doesn't cover them
+    if (order && (order.order_type === 'mixed' || order.order_type === 'service')) {
+      // Appointments are secondary — order total is the source of truth
+    } else {
+      expected += appointments.reduce((s, r) => s + (Number(r.total) || 0), 0)
+    }
   }
 
-  // Already fully applied? (best-effort idempotency check on the order side)
+  /* ── For product-only orders: appointment is NOT required ── */
+  if (order && order.order_type === 'product' && appointmentIds.length === 0) {
+    // Product-only: just validate against order.total
+  }
+
+  /* ── For service/mixed orders: appointments SHOULD be linked but are not
+     strictly required for payment verification (order.total is authoritative) ── */
+
+  // Already fully applied? (idempotency check)
   if (order?.payment_status === 'paid' && appointmentIds.length === 0) {
     return { ok: true, alreadyPaid: true }
   }
 
+  /* ── Fetch payment from Moyasar API ── */
   const payment = await fetchMoyasarPayment(moyasarPaymentId)
   if (payment.status !== 'paid') {
     return { ok: false, error: `حالة الدفع: ${payment.status}` }
@@ -94,6 +111,7 @@ export async function confirmGatewayPayment(params: {
     return { ok: false, error: 'قيمة الدفع لا تطابق القيمة المطلوبة' }
   }
 
+  /* ── Mark order as paid ── */
   if (orderId) {
     await pool.query(
       `UPDATE orders SET payment_status = 'paid', status = 'confirmed' WHERE id = $1 AND payment_status != 'paid'`,
@@ -112,6 +130,7 @@ export async function confirmGatewayPayment(params: {
     )
   }
 
+  /* ── Mark appointments as confirmed ── */
   for (const appt of appointments) {
     await pool.query(
       `UPDATE appointments SET status = 'confirmed' WHERE id = $1 AND status IN ('pending','confirmed')`,

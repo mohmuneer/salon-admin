@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useRef, useCallback, useReducer } from 'react'
 import { X, ShoppingCart, Plus, Minus, Trash2, Check, Calendar, Clock, Phone, User, MapPin, Send, LogIn, UserPlus, LogOut, Package, Eye, Star, Scissors, CreditCard, Building2, Copy } from 'lucide-react'
+import { startMoyasarCheckout } from '@/lib/moyasar-client'
 
 const C: Record<string,string> = {
   navy: '#0a1628', navyLight: '#0f1f38', navyCard: '#13203a',
@@ -164,11 +165,10 @@ export default function LamsetAlMalika() {
   const [ratingLoading, setRatingLoading] = useState(false)
   const [cartPayOpen, setCartPayOpen] = useState(false)
   const [cartPayTab, setCartPayTab] = useState<'transfer'|'card'>('transfer')
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardExpiry, setCardExpiry] = useState('')
-  const [cardCvv, setCardCvv] = useState('')
-  const [cardHolder, setCardHolder] = useState('')
-  const [cardFlipped, setCardFlipped] = useState(false)
+  const [cartPayTarget, setCartPayTarget] = useState<'all'|'products'|'services'>('all')
+  const [moyasarLoading, setMoyasarLoading] = useState(false)
+  const [moyasarError, setMoyasarError] = useState('')
+  const moyasarInited = useRef(false)
   const [cartPayLoading, setCartPayLoading] = useState(false)
   const [cartPayDone, setCartPayDone] = useState(false)
   const [cartPayMethod, setCartPayMethod] = useState('')
@@ -381,43 +381,6 @@ export default function LamsetAlMalika() {
     })
   }
 
-  // Card helpers
-  const fmtCardNumber = (v: string) => v.replace(/\D/g,'').slice(0,16).replace(/(.{4})/g,'$1 ').trim()
-  const fmtExpiry = (v: string) => {
-    const d = v.replace(/\D/g,'').slice(0,4)
-    return d.length >= 3 ? d.slice(0,2)+'/'+d.slice(2) : d
-  }
-  const detectCard = (n: string): { type: string; label: string; color: string } => {
-    const d = n.replace(/\D/g,'')
-    if (/^4/.test(d))           return { type:'visa',       label:'VISA',       color:'#1A1F71' }
-    if (/^5[1-5]|^2[2-7]/.test(d)) return { type:'mastercard', label:'Mastercard', color:'#EB001B' }
-    if (/^3[47]/.test(d))       return { type:'amex',       label:'AMEX',       color:'#007BC1' }
-    if (/^6/.test(d))           return { type:'discover',   label:'Discover',   color:'#FF6600' }
-    return { type:'', label:'', color: C.textDim }
-  }
-  const luhn = (n: string): boolean => {
-    const d = n.replace(/\D/g,'')
-    let s = 0, alt = false
-    for (let i = d.length - 1; i >= 0; i--) {
-      let v = parseInt(d[i])
-      if (alt) { v *= 2; if (v > 9) v -= 9 }
-      s += v; alt = !alt
-    }
-    return s % 10 === 0
-  }
-  const validateCard = (): string => {
-    const raw = cardNumber.replace(/\D/g,'')
-    if (raw.length < 15) return 'رقم البطاقة غير مكتمل'
-    if (!luhn(raw)) return 'رقم البطاقة غير صحيح'
-    if (!cardHolder.trim()) return 'يرجى إدخال اسم حامل البطاقة'
-    const [mm, yy] = cardExpiry.split('/').map(Number)
-    if (!mm || mm < 1 || mm > 12) return 'تاريخ الانتهاء غير صحيح'
-    const exp = new Date(2000 + yy, mm - 1, 1)
-    if (exp < new Date()) return 'البطاقة منتهية الصلاحية'
-    const cvvLen = detectCard(cardNumber).type === 'amex' ? 4 : 3
-    if (cardCvv.replace(/\D/g,'').length < cvvLen) return `رمز الأمان يجب أن يكون ${cvvLen} أرقام`
-    return ''
-  }
 
   const validateReceiptFile = (file: File): string => {
     const allowed = ['image/jpeg','image/png','image/webp']
@@ -441,36 +404,17 @@ export default function LamsetAlMalika() {
       setReceiptError('يرجى رفع سند الحوالة البنكية')
       return
     }
-    if (method === 'بطاقة بنكية') {
-      const err = validateCard()
-      if (err) { setToast({ msg: err, type: 'error' }); return }
-    }
     setCartPayLoading(true)
     try {
-      let receiptUrl = ''
+      const payProducts = cartPayTarget !== 'services' && cart.length > 0
+      const payServices = cartPayTarget !== 'products' && cartUnpaidBk.length > 0
 
-      // 1. Upload receipt if bank transfer
-      if (method === 'حوالة بنكية' && receiptFile) {
-        setReceiptUploading(true)
-        const fd = new FormData()
-        fd.append('file', receiptFile)
-        fd.append('customer_name', authUser?.name || '')
-        fd.append('customer_phone', authUser?.phone || '')
-        fd.append('amount', String(cartGrandTotal))
-        fd.append('appointment_ids', JSON.stringify(cartUnpaidBk.map((b:any)=>String(b.id))))
-        fd.append('payment_method', 'bank_transfer')
-        const rr = await fetch('/api/public-transfer-receipt', { method: 'POST', body: fd })
-        const rd = await rr.json()
-        if (!rr.ok) { setToast({ msg: rd.error || 'فشل رفع السند', type: 'error' }); setCartPayLoading(false); setReceiptUploading(false); return }
-        receiptUrl = rd.receipt_url
-        setReceiptUploading(false)
-      }
-
-      // 2. Products: attach to the same booking when paying together with a service;
-      //    otherwise (no booking in this checkout) create a standalone product order.
-      if (cart.length > 0) {
-        const targetAppt = cartUnpaidBk[0]
+      // 1. Create order FIRST so we have order_id for receipt upload
+      let createdOrderId: string | null = null
+      if (payProducts) {
+        const targetAppt = payServices ? cartUnpaidBk[0] : null
         if (targetAppt) {
+          // Attach products to the existing booking
           await fetch('/api/public-attach-appointment-products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -480,32 +424,57 @@ export default function LamsetAlMalika() {
             })
           })
         } else {
-          const pmMap: Record<string,string> = { 'حوالة بنكية': 'bank_transfer', 'خصم من حساب': 'direct_debit', 'بطاقة بنكية': 'card' }
-          await fetch('/api/public-orders', {
+          // Create standalone product order
+          const pmMap: Record<string,string> = { 'حوالة بنكية': 'bank_transfer', 'خصم من حساب': 'direct_debit' }
+          const orderType = payServices ? 'mixed' : 'product'
+          const orderRes = await fetch('/api/public-orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               items: cart.map(i => ({ productId: i.product.id, name: i.product.name_ar, qty: i.qty, priceSar: i.product.price })),
               customerName: authUser?.name || '', customerPhone: authUser?.phone || '',
-              address: '', paymentMethod: pmMap[method] || 'card',
-              totalSar: cartTotal,
+              address: '', paymentMethod: pmMap[method] || 'bank_transfer',
+              totalSar: cartTotal, orderType,
               ...(method === 'خصم من حساب' ? { debitBank: cartDebitBank, debitAccount: cartDebitAcct, debitHolder: cartDebitOwner } : {}),
             })
           })
+          const orderData = await orderRes.json()
+          if (orderData.dbId) createdOrderId = orderData.dbId
         }
       }
 
+      // 2. Upload receipt if bank transfer (AFTER order is created so we have order_id)
+      let receiptUrl = ''
+      if (method === 'حوالة بنكية' && receiptFile) {
+        setReceiptUploading(true)
+        const fd = new FormData()
+        fd.append('file', receiptFile)
+        fd.append('customer_name', authUser?.name || '')
+        fd.append('customer_phone', authUser?.phone || '')
+        fd.append('amount', String(payTargetTotal))
+        if (createdOrderId) fd.append('order_id', createdOrderId)
+        fd.append('appointment_ids', JSON.stringify(payServices ? cartUnpaidBk.map((b:any)=>String(b.id)) : []))
+        fd.append('payment_method', 'bank_transfer')
+        fd.append('order_type', cartPayTarget)
+        const rr = await fetch('/api/public-transfer-receipt', { method: 'POST', body: fd })
+        const rd = await rr.json()
+        if (!rr.ok) { setToast({ msg: rd.error || 'فشل رفع السند', type: 'error' }); setCartPayLoading(false); setReceiptUploading(false); return }
+        receiptUrl = rd.receipt_url
+        setReceiptUploading(false)
+      }
+
       // 3. Mark bookings paid + clear cart
-      const bkIds = cartUnpaidBk.map((b: any) => String(b.id))
-      markBksPaid(bkIds)
-      setCart([])
+      if (payServices) {
+        const bkIds = cartUnpaidBk.map((b: any) => String(b.id))
+        markBksPaid(bkIds)
+      }
+      if (payProducts) setCart([])
       setReceiptFile(null); setReceiptPreview(null); setReceiptError('')
-      setCardNumber(''); setCardExpiry(''); setCardCvv(''); setCardHolder(''); setCardFlipped(false)
       setCartPayMethod(method)
       setCartPayDone(true)
       setCartPayOpen(false)
       setCartDebitBank(''); setCartDebitAcct(''); setCartDebitOwner('')
-      setCartTab('paid')
+      if (!payProducts || !payServices) setCartTab('paid')
       setToast({ msg: 'تم إرسال طلب الدفع بنجاح ✓', type: 'success' })
       if (authToken) fetchProfile(authToken)
     } catch {
@@ -569,6 +538,85 @@ export default function LamsetAlMalika() {
   const cartGrandTotal = cartTotal + cartBkTotal
   const cartUnpaidCount = cartCount + cartUnpaidBk.length
   const cartPaidCount = cartPaidBk.length + cartPaidOr.length
+  const hasProducts = cart.length > 0
+  const hasBookings = cartUnpaidBk.length > 0
+  const payTargetTotal = cartPayTarget === 'products' ? cartTotal : cartPayTarget === 'services' ? cartBkTotal : cartGrandTotal
+  const payTargetCount = cartPayTarget === 'products' ? cartCount : cartPayTarget === 'services' ? cartUnpaidBk.length : cartUnpaidCount
+
+  // Moyasar initialization when card tab is selected
+  useEffect(() => {
+    if (cartPayTab !== 'card' || !cartPayOpen || moyasarInited.current) return
+    let cancelled = false
+
+    const init = async () => {
+      setMoyasarLoading(true); setMoyasarError('')
+      try {
+        let orderId: string | null = null
+        let apptIds: string[] = []
+
+        const payProducts = cartPayTarget !== 'services' && cart.length > 0
+        const payServices = cartPayTarget !== 'products' && cartUnpaidBk.length > 0
+        const orderType = payProducts && payServices ? 'mixed' : payProducts ? 'product' : 'service'
+
+        if (payProducts) {
+          const r = await fetch('/api/public-orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: cart.map(i => ({ productId: i.product.id, name: i.product.name_ar, qty: i.qty, priceSar: i.product.price })),
+              customerName: authUser?.name || '', customerPhone: authUser?.phone || '',
+              address: '', paymentMethod: 'card', totalSar: cartTotal, orderType,
+            })
+          })
+          const d = await r.json()
+          if (d.dbId) orderId = String(d.dbId)
+        }
+
+        if (payServices) {
+          apptIds = cartUnpaidBk.map((b: any) => String(b.id))
+        }
+
+        if (!orderId && apptIds.length === 0) {
+          if (!cancelled) { setMoyasarError('لا توجد عناصر للدفع'); setMoyasarLoading(false) }
+          return
+        }
+
+        const cfg = await fetch('/api/public-payment-config').then(r => r.json())
+        if (!cfg.enabled || !cfg.publishableKey) {
+          if (!cancelled) { setMoyasarError('الدفع بالبطاقة غير متاح حالياً'); setMoyasarLoading(false) }
+          return
+        }
+
+        if (cancelled) return
+        moyasarInited.current = true
+        setMoyasarLoading(false)
+
+        const itemCount = (payProducts ? cartCount : 0) + (payServices ? apptIds.length : 0)
+        await startMoyasarCheckout({
+          elementSelector: '#moyasar-card-form',
+          amountSar: payTargetTotal,
+          description: `طلب من متجر (${itemCount} عنصر)`,
+          publishableKey: cfg.publishableKey,
+          orderId,
+          appointmentIds: apptIds.length > 0 ? apptIds : undefined,
+        })
+      } catch (err: any) {
+        if (!cancelled) { setMoyasarError(err.message || 'تعذر تحميل نموذج الدفع'); setMoyasarLoading(false) }
+      }
+    }
+    init()
+    return () => { cancelled = true }
+  }, [cartPayTab, cartPayOpen, cartPayTarget, cart, cartUnpaidBk, payTargetTotal, cartCount, cartTotal, authUser]) // eslint-disable-line
+
+  // Reset Moyasar state when modal closes
+  useEffect(() => {
+    if (!cartPayOpen) {
+      moyasarInited.current = false
+      setCartPayTarget('all')
+      setMoyasarLoading(false)
+      setMoyasarError('')
+    }
+  }, [cartPayOpen])
 
   const openBooking = (service: Service) => {
     if (!authUser) { setToast({ msg: 'يرجى تسجيل الدخول أولاً', type: 'error' }); setShowLogin(true); return }
@@ -2068,12 +2116,24 @@ export default function LamsetAlMalika() {
           )}
         </div>
 
-        {/* Pay All button (unpaid tab only) */}
+        {/* Pay buttons (unpaid tab only) */}
         {cartTab === 'unpaid' && cartUnpaidCount > 0 && (
-          <div style={{ padding:'14px 20px', borderTop:`1px solid ${C.border}`, flexShrink:0 }}>
-            <Bt fullWidth onClick={() => requireAuth(() => { if (!authUser) return; setCartPayOpen(true); setCartPayTab('transfer'); setCartPayDone(false) })}
+          <div style={{ padding:'14px 20px', borderTop:`1px solid ${C.border}`, flexShrink:0, display:'flex', flexDirection:'column', gap:8 }}>
+            {hasProducts && hasBookings && (
+              <div style={{ display:'flex', gap:8 }}>
+                <button type="button" onClick={() => requireAuth(() => { if (!authUser) return; setCartPayTarget('products'); setCartPayOpen(true); setCartPayTab('transfer'); setCartPayDone(false) })}
+                  style={{ flex:1, padding:'10px 8px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.04)', color:C.textMuted, fontWeight:600, fontSize:11, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                  <Package size={14} /> المنتجات · {cartTotal.toLocaleString()} ر.س
+                </button>
+                <button type="button" onClick={() => requireAuth(() => { if (!authUser) return; setCartPayTarget('services'); setCartPayOpen(true); setCartPayTab('transfer'); setCartPayDone(false) })}
+                  style={{ flex:1, padding:'10px 8px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.04)', color:C.textMuted, fontWeight:600, fontSize:11, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                  <Scissors size={14} /> الخدمات · {cartBkTotal.toLocaleString()} ر.س
+                </button>
+              </div>
+            )}
+            <Bt fullWidth onClick={() => requireAuth(() => { if (!authUser) return; setCartPayTarget('all'); setCartPayOpen(true); setCartPayTab('transfer'); setCartPayDone(false) })}
               style={{ padding:'13px', fontSize:14 }}>
-              <CreditCard size={16} /> إتمام الدفع · {cartGrandTotal.toLocaleString()} ر.س
+              <CreditCard size={16} /> {hasProducts && hasBookings ? 'دفع الكل' : hasProducts ? 'إتمام الدفع' : 'إتمام الدفع'} · {cartGrandTotal.toLocaleString()} ر.س
             </Bt>
           </div>
         )}
@@ -2087,30 +2147,42 @@ export default function LamsetAlMalika() {
         <div style={{ width:'100%', maxWidth:460, background:C.navyCard, borderRadius:'24px 24px 0 0', maxHeight:'90vh', overflowY:'auto', paddingBottom:32, border:`1px solid ${C.border}` }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'20px 20px 0' }}>
             <div>
-              <h2 style={{ color:'#fff', fontSize:17, fontWeight:800, margin:0 }}>إتمام الدفع</h2>
-              <p style={{ color:C.textDim, fontSize:12, margin:'3px 0 0' }}>{cartUnpaidCount} عنصر</p>
+              <h2 style={{ color:'#fff', fontSize:17, fontWeight:800, margin:0 }}>
+                {cartPayTarget === 'products' ? 'دفع المنتجات' : cartPayTarget === 'services' ? 'دفع الخدمات' : 'إتمام الدفع'}
+              </h2>
+              <p style={{ color:C.textDim, fontSize:12, margin:'3px 0 0' }}>{payTargetCount} عنصر</p>
             </div>
             <button type="button" onClick={() => { setCartPayOpen(false); setReceiptFile(null); setReceiptPreview(null); setReceiptError('') }} style={{ background:'rgba(255,255,255,0.06)', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:C.textMuted }}><X size={16} /></button>
           </div>
 
           {/* Summary */}
           <div style={{ margin:'14px 20px 0', background:'rgba(255,255,255,0.04)', borderRadius:14, padding:'12px 14px', border:`1px solid ${C.border}` }}>
-            {cart.map(i => (
-              <div key={i.product.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0' }}>
-                <span style={{ color:C.textMuted }}>{i.product.name_ar} ×{i.qty}</span>
-                <span style={{ fontWeight:600, color:C.gold }}>{(i.product.price*i.qty).toLocaleString()} ر.س</span>
-              </div>
-            ))}
-            {cart.length > 0 && cartUnpaidBk.length > 0 && <div style={{ borderTop:`1px dashed ${C.border}`, margin:'6px 0' }} />}
-            {cartUnpaidBk.map((b:any) => (
-              <div key={b.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0' }}>
-                <span style={{ color:C.textMuted }}>{b.service_name}</span>
-                <span style={{ fontWeight:600, color:C.gold }}>{Number(b.price||b.total||0).toLocaleString()} ر.س</span>
-              </div>
-            ))}
+            {cartPayTarget !== 'services' && cart.length > 0 && (
+              <>
+                {cartPayTarget === 'all' && <div style={{ color:C.textDim, fontSize:10, fontWeight:700, marginBottom:6, display:'flex', alignItems:'center', gap:4 }}><Package size={10} /> المنتجات</div>}
+                {cart.map(i => (
+                  <div key={i.product.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0' }}>
+                    <span style={{ color:C.textMuted }}>{i.product.name_ar} ×{i.qty}</span>
+                    <span style={{ fontWeight:600, color:C.gold }}>{(i.product.price*i.qty).toLocaleString()} ر.س</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {cartPayTarget === 'all' && cart.length > 0 && cartUnpaidBk.length > 0 && <div style={{ borderTop:`1px dashed ${C.border}`, margin:'8px 0' }} />}
+            {cartPayTarget !== 'products' && cartUnpaidBk.length > 0 && (
+              <>
+                {cartPayTarget === 'all' && <div style={{ color:C.textDim, fontSize:10, fontWeight:700, marginBottom:6, display:'flex', alignItems:'center', gap:4 }}><Scissors size={10} /> الخدمات</div>}
+                {cartUnpaidBk.map((b:any) => (
+                  <div key={b.id} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0' }}>
+                    <span style={{ color:C.textMuted }}>{b.service_name}</span>
+                    <span style={{ fontWeight:600, color:C.gold }}>{Number(b.price||b.total||0).toLocaleString()} ر.س</span>
+                  </div>
+                ))}
+              </>
+            )}
             <div style={{ display:'flex', justifyContent:'space-between', marginTop:10, paddingTop:10, borderTop:`1px solid ${C.gold}44` }}>
               <span style={{ fontWeight:800, fontSize:14, color:'#fff' }}>الإجمالي</span>
-              <span style={{ fontWeight:900, fontSize:18, color:C.gold }}>{cartGrandTotal.toLocaleString()} ر.س</span>
+              <span style={{ fontWeight:900, fontSize:18, color:C.gold }}>{payTargetTotal.toLocaleString()} ر.س</span>
             </div>
           </div>
 
@@ -2193,112 +2265,42 @@ export default function LamsetAlMalika() {
 
               <button type="button" disabled={cartPayLoading || !receiptFile} onClick={() => submitCartPayment('حوالة بنكية')}
                 style={{ width:'100%', marginTop:14, padding:14, borderRadius:14, border:'none', background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit', opacity:(cartPayLoading||!receiptFile)?0.65:1 }}>
-                {receiptUploading ? 'جارٍ رفع السند...' : cartPayLoading ? 'جارٍ المعالجة...' : `تأكيد التحويل — ${cartGrandTotal.toLocaleString()} ر.س`}
+                {receiptUploading ? 'جارٍ رفع السند...' : cartPayLoading ? 'جارٍ المعالجة...' : `تأكيد التحويل — ${payTargetTotal.toLocaleString()} ر.س`}
               </button>
             </div>
           )}
 
-          {/* ── Card payment ── */}
-          {cartPayTab === 'card' && (() => {
-            const cd = detectCard(cardNumber)
-            const rawNum = cardNumber.replace(/\D/g,'')
-            const isAmex = cd.type === 'amex'
-            const cvvLen = isAmex ? 4 : 3
-            const cardOk = rawNum.length >= (isAmex ? 15 : 16) && cardHolder.trim() && cardExpiry.length === 5 && cardCvv.replace(/\D/g,'').length >= cvvLen
-            const cardBrands = [
-              { t:'visa',       l:'VISA',       s:'#1A1F71', bg:'#f0f4ff' },
-              { t:'mastercard', l:'MC',         s:'#EB001B', bg:'#fff0f0' },
-              { t:'amex',       l:'AMEX',       s:'#007BC1', bg:'#f0f7ff' },
-              { t:'discover',   l:'DISC',       s:'#FF6600', bg:'#fff5f0' },
-            ]
-            return (
-              <div style={{ margin:'14px 20px 20px' }}>
-                {/* Card brands */}
-                <div style={{ display:'flex', gap:6, justifyContent:'flex-end', marginBottom:14 }}>
-                  {cardBrands.map(b => (
-                    <div key={b.t} style={{ width:42, height:28, borderRadius:6, border:`1.5px solid ${cd.type===b.t?b.s:'rgba(255,255,255,0.1)'}`, background: cd.type===b.t?b.bg+'22':'rgba(255,255,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color: cd.type===b.t?b.s:'rgba(255,255,255,0.25)', transition:'all 0.2s', letterSpacing:0.5 }}>
-                      {b.l}
-                    </div>
-                  ))}
+          {/* ── Card payment (Moyasar) ── */}
+          {cartPayTab === 'card' && (
+            <div style={{ margin:'14px 20px 20px' }}>
+              {moyasarLoading && (
+                <div style={{ textAlign:'center', padding:30 }}>
+                  <div style={{ width:36, height:36, border:`3px solid ${C.gold}33`, borderTopColor:C.gold, borderRadius:'50%', animation:'spin .8s linear infinite', margin:'0 auto 12px' }} />
+                  <p style={{ color:C.textMuted, fontSize:13, fontWeight:600 }}>جارٍ تحميل نموذج الدفع...</p>
+                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                 </div>
-
-                {/* Visual card preview */}
-                <div style={{ borderRadius:16, padding:'18px 20px', marginBottom:16, minHeight:120, background: cd.type ? `linear-gradient(135deg,${cd.color}dd,${cd.color}88)` : `linear-gradient(135deg,#1e3a5f,#0a1628)`, boxShadow:'0 8px 32px rgba(0,0,0,0.4)', position:'relative', overflow:'hidden' }}>
-                  <div style={{ position:'absolute', top:-20, right:-20, width:140, height:140, borderRadius:'50%', background:'rgba(255,255,255,0.06)' }} />
-                  <div style={{ position:'absolute', bottom:-30, left:-10, width:100, height:100, borderRadius:'50%', background:'rgba(255,255,255,0.04)' }} />
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, position:'relative' }}>
-                    <div style={{ width:40, height:28, borderRadius:6, background:'linear-gradient(135deg,#FFD700,#FFA500)', boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }} />
-                    {cd.label && <span style={{ color:'white', fontWeight:900, fontSize:15, letterSpacing:1, opacity:0.9 }}>{cd.label}</span>}
+              )}
+              {moyasarError && (
+                <div style={{ textAlign:'center', padding:20 }}>
+                  <div style={{ background:`${C.error}22`, borderRadius:12, padding:'12px 16px', marginBottom:14 }}>
+                    <p style={{ color:C.error, fontSize:13, fontWeight:600, margin:0 }}>{moyasarError}</p>
                   </div>
-                  <div style={{ fontFamily:'monospace', fontSize:16, fontWeight:700, color:'white', letterSpacing:3, marginBottom:14, position:'relative' }}>
-                    {rawNum.length > 0 ? fmtCardNumber(cardNumber).replace(/\d/g, cardFlipped ? '•' : '$&') : '•••• •••• •••• ••••'}
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'space-between', position:'relative' }}>
-                    <div>
-                      <div style={{ color:'rgba(255,255,255,0.5)', fontSize:9, marginBottom:2 }}>CARDHOLDER</div>
-                      <div style={{ color:'white', fontWeight:600, fontSize:12, letterSpacing:1 }}>{cardHolder || 'YOUR NAME'}</div>
-                    </div>
-                    <div style={{ textAlign:'left' }}>
-                      <div style={{ color:'rgba(255,255,255,0.5)', fontSize:9, marginBottom:2 }}>EXPIRES</div>
-                      <div style={{ color:'white', fontWeight:600, fontSize:12, letterSpacing:1, fontFamily:'monospace' }}>{cardExpiry || 'MM/YY'}</div>
-                    </div>
+                  <div style={{ background:`${C.gold}0a`, border:`1px solid ${C.gold}22`, borderRadius:10, padding:'10px 14px', fontSize:12, color:C.textDim, lineHeight:1.7 }}>
+                    يمكنك استخدام التحويل البنكي كبديل
                   </div>
                 </div>
-
-                {/* Card number */}
-                <div style={{ marginBottom:12 }}>
-                  <label style={{ display:'block', fontSize:12, color:C.textDim, marginBottom:5, fontWeight:600 }}>رقم البطاقة</label>
-                  <div style={{ position:'relative' }}>
-                    <input value={cardNumber} inputMode="numeric" placeholder="1234 5678 9012 3456" maxLength={19}
-                      onChange={e => setCardNumber(fmtCardNumber(e.target.value))}
-                      style={{ width:'100%', padding:'12px 14px', borderRadius:12, border:`1px solid ${rawNum.length===16&&luhn(rawNum)?C.success:C.border}`, background:C.navy, color:'#fff', fontSize:15, fontFamily:'monospace', letterSpacing:2, outline:'none', boxSizing:'border-box' }} />
-                    {rawNum.length >= 15 && (
-                      <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:10, fontWeight:800, color: luhn(rawNum)?C.success:C.error }}>
-                        {luhn(rawNum) ? '✓' : '✕'}
-                      </span>
-                    )}
+              )}
+              {!moyasarLoading && !moyasarError && (
+                <>
+                  <div style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', alignItems:'flex-start', gap:8 }}>
+                    <span style={{ fontSize:14 }}>🔒</span>
+                    <span style={{ fontSize:11, color:C.textDim, lineHeight:1.6 }}>أدخل بيانات بطاقتك الآمنة أدناه لإتمام الدفع — {payTargetTotal.toLocaleString()} ر.س</span>
                   </div>
-                </div>
-
-                {/* Cardholder name */}
-                <div style={{ marginBottom:12 }}>
-                  <label style={{ display:'block', fontSize:12, color:C.textDim, marginBottom:5, fontWeight:600 }}>الاسم على البطاقة</label>
-                  <input value={cardHolder} placeholder="MOHAMMED ALI" autoCapitalize="characters"
-                    onChange={e => setCardHolder(e.target.value.toUpperCase())}
-                    style={{ width:'100%', padding:'12px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:13, fontFamily:'monospace', letterSpacing:1, outline:'none', boxSizing:'border-box' }} />
-                </div>
-
-                {/* Expiry + CVV */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-                  <div>
-                    <label style={{ display:'block', fontSize:12, color:C.textDim, marginBottom:5, fontWeight:600 }}>تاريخ الانتهاء</label>
-                    <input value={cardExpiry} inputMode="numeric" placeholder="MM/YY" maxLength={5}
-                      onChange={e => setCardExpiry(fmtExpiry(e.target.value))}
-                      style={{ width:'100%', padding:'12px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:14, fontFamily:'monospace', letterSpacing:2, outline:'none', boxSizing:'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display:'block', fontSize:12, color:C.textDim, marginBottom:5, fontWeight:600 }}>رمز الأمان {isAmex ? '(4 أرقام)' : '(CVV)'}</label>
-                    <input value={cardCvv} inputMode="numeric" placeholder={isAmex?'••••':'•••'} maxLength={cvvLen} type="password"
-                      onFocus={() => setCardFlipped(true)} onBlur={() => setCardFlipped(false)}
-                      onChange={e => setCardCvv(e.target.value.replace(/\D/g,'').slice(0,cvvLen))}
-                      style={{ width:'100%', padding:'12px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.navy, color:'#fff', fontSize:14, fontFamily:'monospace', letterSpacing:3, outline:'none', boxSizing:'border-box' }} />
-                  </div>
-                </div>
-
-                {/* Security note */}
-                <div style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', alignItems:'flex-start', gap:8 }}>
-                  <span style={{ fontSize:14 }}>🔒</span>
-                  <span style={{ fontSize:11, color:C.textDim, lineHeight:1.6 }}>معلوماتك محمية بتشفير SSL 256-bit. لا يتم حفظ بيانات بطاقتك على خوادمنا.</span>
-                </div>
-
-                <button type="button" disabled={cartPayLoading || !cardOk} onClick={() => submitCartPayment('بطاقة بنكية')}
-                  style={{ width:'100%', padding:14, borderRadius:14, border:'none', background:`linear-gradient(135deg,${C.gold},${C.goldLight})`, color:C.navy, fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'inherit', opacity:(cartPayLoading||!cardOk)?0.6:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-                  <CreditCard size={16} />
-                  {cartPayLoading ? 'جارٍ المعالجة...' : `ادفع الآن — ${cartGrandTotal.toLocaleString()} ر.س`}
-                </button>
-              </div>
-            )
-          })()}
+                  <div id="moyasar-card-form" style={{ minHeight:180 }} />
+                </>
+              )}
+            </div>
+          )}
 
         </div>
       </div>

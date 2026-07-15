@@ -2,19 +2,25 @@ import { NextResponse, NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { mockOrders, addMockOrder } from '@/lib/mock-orders'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const result = await pool.query(`
+    const orderType = req.nextUrl.searchParams.get('order_type')
+    let query = `
       SELECT o.id, u.name AS customer_name, u.phone,
-             o.status, o.subtotal, o.discount, o.shipping_fee, o.total,
+             o.status, o.order_type, o.subtotal, o.discount, o.shipping_fee, o.total,
              o.payment_status, o.payment_method, o.created_at,
              COUNT(oi.id) AS items_count
       FROM orders o
       JOIN users u ON u.id = o.customer_id
       LEFT JOIN order_items oi ON oi.order_id = o.id
-      GROUP BY o.id, u.name, u.phone
-      ORDER BY o.created_at DESC LIMIT 50
-    `)
+    `
+    const params: any[] = []
+    if (orderType && ['product', 'service', 'mixed'].includes(orderType)) {
+      query += ` WHERE o.order_type = $1`
+      params.push(orderType)
+    }
+    query += ` GROUP BY o.id, u.name, u.phone ORDER BY o.created_at DESC LIMIT 50`
+    const result = await pool.query(query, params)
     return NextResponse.json(result.rows)
   } catch (err) {
     console.error('DB unavailable, returning mock orders:', (err as Error).message)

@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const result = await pool.query(
       `SELECT pr.id, pr.order_id, pr.appointment_ids, pr.customer_name, pr.customer_phone, pr.receipt_url,
-              pr.amount, pr.expected_amount, pr.payment_method, pr.status, pr.notes, pr.created_at,
+              pr.amount, pr.expected_amount, pr.payment_method, pr.status, pr.order_type, pr.notes, pr.created_at,
               pr.verified_by, pr.verified_at, u.name AS verified_by_name
        FROM payment_receipts pr
        LEFT JOIN users u ON u.id = pr.verified_by
