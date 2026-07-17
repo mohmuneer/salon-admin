@@ -2,6 +2,20 @@ import { NextResponse, NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
+function isValidEmail(email: string): boolean {
+  const re = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+  if (!re.test(email)) return false
+  const parts = email.split('@')
+  if (parts.length !== 2) return false
+  const [, domain] = parts
+  if (domain.length > 253) return false
+  if (domain.startsWith('.') || domain.endsWith('.') || domain.startsWith('-') || domain.endsWith('-')) return false
+  if (!domain.includes('.')) return false
+  const tld = domain.split('.').pop() || ''
+  if (tld.length < 2) return false
+  return true
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { name, phone, email, password } = await req.json()
@@ -12,8 +26,8 @@ export async function POST(req: NextRequest) {
     if (phone && !/^(05\d{8}|\+966\d{9}|966\d{9})$/.test(phone.replace(/\s/g, ''))) {
       return NextResponse.json({ error: 'رقم الجوال غير صحيح (05XXXXXXXX)' }, { status: 400 })
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: 'البريد الإلكتروني غير صحيح' }, { status: 400 })
+    if (email && !isValidEmail(email)) {
+      return NextResponse.json({ error: 'صيغة البريد الإلكتروني غير صحيحة — تأكد من إدخال بريد حقيقي مثل name@gmail.com' }, { status: 400 })
     }
     if (password.length < 6) {
       return NextResponse.json({ error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' }, { status: 400 })

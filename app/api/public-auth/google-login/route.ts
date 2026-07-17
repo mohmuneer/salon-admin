@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import pool from '@/lib/db'
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
 
 async function verifyGoogleToken(idToken: string): Promise<{ email: string; name: string; picture?: string } | null> {
   try {

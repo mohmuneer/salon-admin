@@ -426,7 +426,12 @@ export default function LamsetAlMalika() {
 
   const doRegister = async () => {
     if (!regName || !regEmail || !regPass) { setToast({ msg: 'يرجى تعبئة الاسم والبريد الإلكتروني وكلمة المرور', type: 'error' }); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) { setToast({ msg: 'البريد الإلكتروني غير صحيح', type: 'error' }); return }
+    const emailRe = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+    const emailParts = regEmail.split('@')
+    const emailTld = emailParts[1]?.split('.').pop() || ''
+    if (!emailRe.test(regEmail) || emailParts.length !== 2 || !emailParts[1]?.includes('.') || emailTld.length < 2) {
+      setToast({ msg: 'صيغة البريد الإلكتروني غير صحيحة — تأكد من إدخال بريد حقيقي مثل name@gmail.com', type: 'error' }); return
+    }
     if (regPhone && !/^05\d{8}$/.test(regPhone)) { setToast({ msg: 'رقم الجوال غير صحيح (05XXXXXXXX)', type: 'error' }); return }
     if (regPass.length < 6) { setToast({ msg: 'كلمة المرور 6 أحرف على الأقل', type: 'error' }); return }
     setAuthLoading(true)
