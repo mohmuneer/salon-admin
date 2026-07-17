@@ -424,24 +424,56 @@ export default function LamsetAlMalika() {
     } catch (e) { console.error('Google renderButton error:', e) }
   }, [showLogin, showRegister, googleReady])
 
+  // Client-side email validation (mirrors lib/validate-email.ts)
+  const EMAIL_TYPOS: Record<string, string> = {
+    'gmial.com':'gmail.com','gamil.com':'gmail.com','gmal.com':'gmail.com','gmaill.com':'gmail.com',
+    'gmail.co':'gmail.com','gmail.cm':'gmail.com','gmail.con':'gmail.com','gmail.om':'gmail.com',
+    'gnail.com':'gmail.com','googlemail.com':'gmail.com',
+    'hotnail.com':'hotmail.com','hotmal.com':'hotmail.com','hotmial.com':'hotmail.com',
+    'outlok.com':'outlook.com','outlook.co':'outlook.com',
+    'yaho.com':'yahoo.com','yahoo.co':'yahoo.com',
+  }
+  const COMMON_TLDS = new Set(['com','net','org','edu','gov','io','co','me','sa','uk','ca','au','de','fr','online','tech','app','dev','store','cloud','xyz','info','biz'])
+  const [regEmailValid, setRegEmailValid] = useState<boolean|null>(null)
+  const [regEmailSuggestion, setRegEmailSuggestion] = useState('')
+  const [regEmailErr, setRegEmailErr] = useState('')
+  const regEmailTimer = useRef<ReturnType<typeof setTimeout>>(null)
+
+  const validateRegEmail = useCallback((val: string) => {
+    setRegEmail(val); setRegEmailSuggestion(''); setRegEmailErr('')
+    if (regEmailTimer.current) clearTimeout(regEmailTimer.current)
+    if (!val.trim()) { setRegEmailValid(null); return }
+    regEmailTimer.current = setTimeout(() => {
+      const e = val.trim().toLowerCase()
+      if (e.includes(' ') || e.startsWith('@') || e.endsWith('@') || !e.includes('@') || e.includes('@@')) { setRegEmailValid(false); setRegEmailErr('صيغة البريد غير صحيحة'); return }
+      const [local, domain] = e.split('@')
+      if (!local || local.length > 64 || local.startsWith('.') || local.endsWith('.') || local.includes('..')) { setRegEmailValid(false); setRegEmailErr('اسم المستخدم غير صالح'); return }
+      if (!domain || !domain.includes('.') || domain.endsWith('.') || domain.startsWith('-')) { setRegEmailValid(false); setRegEmailErr('النطاق غير صالح'); return }
+      const tld = domain.split('.').pop() || ''
+      if (tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) { setRegEmailValid(false); setRegEmailErr('الامتداد غير صالح'); return }
+      const typo = EMAIL_TYPOS[domain]
+      if (typo) { setRegEmailValid(false); setRegEmailErr(`هل تقصد ${local}@${typo}؟`); setRegEmailSuggestion(`${local}@${typo}`); return }
+      if (!COMMON_TLDS.has(tld)) { setRegEmailValid(false); setRegEmailErr('النطاق غير معروف'); return }
+      setRegEmailValid(true); setRegEmailErr('')
+    }, 400)
+  }, [])
+
   const doRegister = async () => {
     if (!regName || !regEmail || !regPass) { setToast({ msg: 'يرجى تعبئة الاسم والبريد الإلكتروني وكلمة المرور', type: 'error' }); return }
-    const emailRe = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
-    const emailParts = regEmail.split('@')
-    const emailTld = emailParts[1]?.split('.').pop() || ''
-    if (!emailRe.test(regEmail) || emailParts.length !== 2 || !emailParts[1]?.includes('.') || emailTld.length < 2) {
-      setToast({ msg: 'صيغة البريد الإلكتروني غير صحيحة — تأكد من إدخال بريد حقيقي مثل name@gmail.com', type: 'error' }); return
-    }
+    if (regEmailValid === false && !regEmailSuggestion) { setToast({ msg: regEmailErr || 'البريد الإلكتروني غير صالح', type: 'error' }); return }
     if (regPhone && !/^05\d{8}$/.test(regPhone)) { setToast({ msg: 'رقم الجوال غير صحيح (05XXXXXXXX)', type: 'error' }); return }
     if (regPass.length < 6) { setToast({ msg: 'كلمة المرور 6 أحرف على الأقل', type: 'error' }); return }
     setAuthLoading(true)
     try {
       const r = await fetch('/api/public-auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: regName, email: regEmail, phone: regPhone || undefined, password: regPass }) })
       const d = await r.json()
-      if (!r.ok) { setToast({ msg: d.error || 'خطأ في التسجيل', type: 'error' }); setAuthLoading(false); return }
+      if (!r.ok) {
+        if (d.suggestion) { setRegEmail(d.suggestion); setRegEmailValid(true); setRegEmailErr('') }
+        setToast({ msg: d.error || 'خطأ في التسجيل', type: 'error' }); setAuthLoading(false); return
+      }
       localStorage.setItem('lamset_token', d.token)
       setAuthToken(d.token); setAuthUser(d.user)
-      setShowRegister(false); setRegName(''); setRegEmail(''); setRegPhone(''); setRegPass('')
+      setShowRegister(false); setRegName(''); setRegEmail(''); setRegPhone(''); setRegPass(''); setRegEmailValid(null)
       fetchProfile(d.token)
       setToast({ msg: `مرحباً ${d.user.name}، تم إنشاء الحساب ✓`, type: 'success' })
     } catch { setToast({ msg: 'حدث خطأ في الاتصال', type: 'error' }); setAuthLoading(false) }
@@ -1593,10 +1625,29 @@ export default function LamsetAlMalika() {
       </>}
 
       <In label="الاسم" value={regName} onChange={setRegName} icon={<User size={15} />} />
-      <In label="البريد الإلكتروني" value={regEmail} onChange={setRegEmail} type="email" placeholder="email@example.com" icon={<Mail size={15} />} />
+      {/* Email with real-time validation */}
+      <div style={{ marginBottom:14 }}>
+        <label style={{ display:'block', color:C.textMuted, fontSize:13, marginBottom:5, fontWeight:500 }}>البريد الإلكتروني <span style={{color:'#ef4444'}}>*</span></label>
+        <div style={{ position:'relative' }}>
+          <div style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', color:C.textDim, pointerEvents:'none' }}><Mail size={15} /></div>
+          <input value={regEmail} onChange={e => validateRegEmail(e.target.value)} type="email" placeholder="name@gmail.com" dir="ltr" inputMode="email"
+            style={{ width:'100%', padding:'12px 16px', paddingRight:40, paddingLeft: regEmail && regEmailValid === true ? 36 : 16, borderRadius:12, border:`1px solid ${regEmailValid === true ? '#22c55e' : regEmailValid === false ? '#ef4444' : C.border}`, background:C.navy, color:C.text, fontSize:14, outline:'none', transition:'border-color 0.3s', boxSizing:'border-box', fontFamily:'inherit' }} />
+          {regEmail && regEmailValid === true && <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'#22c55e' }}>✓</div>}
+          {regEmail && regEmailValid === false && <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'#ef4444', fontSize:14 }}>✕</div>}
+        </div>
+        {regEmailErr && (
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:5 }}>
+            <span style={{ fontSize:12, color: regEmailSuggestion ? '#f59e0b' : '#ef4444' }}>{regEmailErr}</span>
+            {regEmailSuggestion && (
+              <button onClick={() => { setRegEmail(regEmailSuggestion); setRegEmailValid(true); setRegEmailErr(''); setRegEmailSuggestion('') }}
+                style={{ background:'rgba(245,158,11,0.15)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:6, padding:'2px 8px', color:'#f59e0b', fontSize:11, fontWeight:700, cursor:'pointer' }}>تصحيح</button>
+            )}
+          </div>
+        )}
+      </div>
       <In label="رقم الجوال (اختياري)" value={regPhone} onChange={setRegPhone} type="tel" placeholder="05XXXXXXXX" icon={<Phone size={15} />} />
       <In label="كلمة المرور" value={regPass} onChange={setRegPass} type="password" icon={<LogIn size={15} />} />
-      <Bt fullWidth onClick={doRegister} disabled={authLoading} style={{ padding:'13px' }}>{authLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}</Bt>
+      <Bt fullWidth onClick={doRegister} disabled={authLoading || !!(regEmail && !regEmailValid && regEmailValid !== null)} style={{ padding:'13px', opacity: authLoading || (regEmail && !regEmailValid && regEmailValid !== null) ? 0.5 : 1 }}>{authLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}</Bt>
       <div style={{ textAlign:'center', marginTop:14 }}>
         <span style={{ color:C.textDim, fontSize:13 }}>لديك حساب بالفعل؟ </span>
         <button onClick={() => { setShowRegister(false); setShowLogin(true) }} style={{ background:'none', border:'none', color:C.gold, cursor:'pointer', fontSize:13, fontWeight:600, textDecoration:'underline' }}>تسجيل دخول</button>
