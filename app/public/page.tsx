@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useRef, useCallback, useReducer } from 'react'
-import { X, ShoppingCart, Plus, Minus, Trash2, Check, Calendar, Clock, Phone, User, MapPin, Send, LogIn, UserPlus, LogOut, Package, Eye, Star, Scissors, CreditCard, Building2, Copy } from 'lucide-react'
+import { X, ShoppingCart, Plus, Minus, Trash2, Check, Calendar, Clock, Phone, User, MapPin, Send, LogIn, UserPlus, LogOut, Package, Eye, Star, Scissors, CreditCard, Building2, Copy, Mail } from 'lucide-react'
 import { startMoyasarCheckout } from '@/lib/moyasar-client'
 
 const C: Record<string,string> = {
@@ -190,6 +190,7 @@ export default function LamsetAlMalika() {
   const [loginPhone, setLoginPhone] = useState('')
   const [loginPass, setLoginPass] = useState('')
   const [regName, setRegName] = useState('')
+  const [regEmail, setRegEmail] = useState('')
   const [regPhone, setRegPhone] = useState('')
   const [regPass, setRegPass] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
@@ -374,7 +375,7 @@ export default function LamsetAlMalika() {
     if (!loginPhone || !loginPass) { setToast({ msg: 'يرجى تعبئة جميع الحقول', type: 'error' }); return }
     setAuthLoading(true)
     try {
-      const r = await fetch('/api/public-auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: loginPhone, password: loginPass }) })
+      const r = await fetch('/api/public-auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: loginPhone, password: loginPass }) })
       const d = await r.json()
       if (!r.ok) { setToast({ msg: d.error || 'خطأ في تسجيل الدخول', type: 'error' }); setAuthLoading(false); return }
       localStorage.setItem('lamset_token', d.token)
@@ -424,17 +425,18 @@ export default function LamsetAlMalika() {
   }, [showLogin, showRegister, googleReady])
 
   const doRegister = async () => {
-    if (!regName || !regPhone || !regPass) { setToast({ msg: 'يرجى تعبئة جميع الحقول', type: 'error' }); return }
-    if (!/^05\d{8}$/.test(regPhone)) { setToast({ msg: 'رقم الجوال غير صحيح', type: 'error' }); return }
+    if (!regName || !regEmail || !regPass) { setToast({ msg: 'يرجى تعبئة الاسم والبريد الإلكتروني وكلمة المرور', type: 'error' }); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) { setToast({ msg: 'البريد الإلكتروني غير صحيح', type: 'error' }); return }
+    if (regPhone && !/^05\d{8}$/.test(regPhone)) { setToast({ msg: 'رقم الجوال غير صحيح (05XXXXXXXX)', type: 'error' }); return }
     if (regPass.length < 6) { setToast({ msg: 'كلمة المرور 6 أحرف على الأقل', type: 'error' }); return }
     setAuthLoading(true)
     try {
-      const r = await fetch('/api/public-auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: regName, phone: regPhone, password: regPass }) })
+      const r = await fetch('/api/public-auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: regName, email: regEmail, phone: regPhone || undefined, password: regPass }) })
       const d = await r.json()
       if (!r.ok) { setToast({ msg: d.error || 'خطأ في التسجيل', type: 'error' }); setAuthLoading(false); return }
       localStorage.setItem('lamset_token', d.token)
       setAuthToken(d.token); setAuthUser(d.user)
-      setShowRegister(false); setRegName(''); setRegPhone(''); setRegPass('')
+      setShowRegister(false); setRegName(''); setRegEmail(''); setRegPhone(''); setRegPass('')
       fetchProfile(d.token)
       setToast({ msg: `مرحباً ${d.user.name}، تم إنشاء الحساب ✓`, type: 'success' })
     } catch { setToast({ msg: 'حدث خطأ في الاتصال', type: 'error' }); setAuthLoading(false) }
@@ -1558,12 +1560,12 @@ export default function LamsetAlMalika() {
         <div ref={googleLoginBtnRef} style={{ width:'100%', minHeight:44, marginBottom:16 }} />
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
           <div style={{ flex:1, height:1, background:C.border }} />
-          <span style={{ color:C.textDim, fontSize:12, whiteSpace:'nowrap' }}>أو بالجوال وكلمة المرور</span>
+          <span style={{ color:C.textDim, fontSize:12, whiteSpace:'nowrap' }}>أو بالبريد الإلكتروني</span>
           <div style={{ flex:1, height:1, background:C.border }} />
         </div>
       </>}
 
-      <In label="رقم الجوال" value={loginPhone} onChange={setLoginPhone} type="tel" placeholder="05XXXXXXXX" icon={<Phone size={15} />} />
+      <In label="البريد الإلكتروني أو رقم الجوال" value={loginPhone} onChange={setLoginPhone} placeholder="email@example.com أو 05XXXXXXXX" icon={<Mail size={15} />} />
       <In label="كلمة المرور" value={loginPass} onChange={setLoginPass} type="password" icon={<LogIn size={15} />} />
       <Bt fullWidth onClick={doLogin} disabled={authLoading} style={{ padding:'13px' }}>{authLoading ? 'جاري تسجيل الدخول...' : 'دخول'}</Bt>
       <div style={{ textAlign:'center', marginTop:14 }}>
@@ -1586,7 +1588,8 @@ export default function LamsetAlMalika() {
       </>}
 
       <In label="الاسم" value={regName} onChange={setRegName} icon={<User size={15} />} />
-      <In label="رقم الجوال" value={regPhone} onChange={setRegPhone} type="tel" placeholder="05XXXXXXXX" icon={<Phone size={15} />} />
+      <In label="البريد الإلكتروني" value={regEmail} onChange={setRegEmail} type="email" placeholder="email@example.com" icon={<Mail size={15} />} />
+      <In label="رقم الجوال (اختياري)" value={regPhone} onChange={setRegPhone} type="tel" placeholder="05XXXXXXXX" icon={<Phone size={15} />} />
       <In label="كلمة المرور" value={regPass} onChange={setRegPass} type="password" icon={<LogIn size={15} />} />
       <Bt fullWidth onClick={doRegister} disabled={authLoading} style={{ padding:'13px' }}>{authLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}</Bt>
       <div style={{ textAlign:'center', marginTop:14 }}>
