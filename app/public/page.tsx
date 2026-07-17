@@ -209,7 +209,7 @@ export default function LamsetAlMalika() {
       if (!r.ok) { setToast({ msg: d.error || 'خطأ في تسجيل الدخول بـ Google', type: 'error' }); setAuthLoading(false); return }
       localStorage.setItem('lamset_token', d.token)
       setAuthToken(d.token); setAuthUser(d.user)
-      setShowLogin(false)
+      setShowLogin(false); setShowRegister(false)
       fetchProfile(d.token)
       setToast({ msg: `مرحباً ${d.user.name} 👋`, type: 'success' })
     } catch { setToast({ msg: 'حدث خطأ في الاتصال', type: 'error' }) }
@@ -218,7 +218,7 @@ export default function LamsetAlMalika() {
 
   // Load Google Identity Services
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return
+    if (!GOOGLE_CLIENT_ID || typeof window === 'undefined') return
     const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
     if (existingScript) { setGoogleReady(true); return }
     const script = document.createElement('script')
@@ -226,6 +226,7 @@ export default function LamsetAlMalika() {
     script.async = true
     script.defer = true
     script.onload = () => setGoogleReady(true)
+    script.onerror = () => console.error('Failed to load Google Identity Services')
     document.head.appendChild(script)
   }, [])
 
@@ -385,18 +386,42 @@ export default function LamsetAlMalika() {
     setAuthLoading(false)
   }
 
-  const doGoogleLogin = () => {
-    if (typeof window === 'undefined' || !(window as any).google) {
-      setToast({ msg: 'جاري تحميل خدمات Google...', type: 'error' }); return
-    }
+  const googleLoginBtnRef = useRef<HTMLDivElement>(null)
+  const googleRegisterBtnRef = useRef<HTMLDivElement>(null)
+  const googleInitialized = useRef(false)
+
+  // Initialize Google and render buttons when modals open
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleReady || typeof (window as any).google === 'undefined') return
+    if (googleInitialized.current) return
     try {
       ;(window as any).google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (resp: any) => { if (resp.credential) handleGoogleCredential(resp.credential) },
+        auto_select: false,
+        cancel_on_tap_outside: true,
       })
-      ;(window as any).google.accounts.id.prompt()
-    } catch { setToast({ msg: 'فشل تحميل تسجيل الدخول بـ Google', type: 'error' }) }
-  }
+      googleInitialized.current = true
+    } catch (e) { console.error('Google initialize error:', e) }
+  }, [googleReady, GOOGLE_CLIENT_ID])
+
+  // Render buttons when modals open and refs are available
+  useEffect(() => {
+    if (!googleInitialized.current || typeof (window as any).google === 'undefined') return
+    const container = showLogin ? googleLoginBtnRef.current : showRegister ? googleRegisterBtnRef.current : null
+    if (!container) return
+    if (container.children.length > 0) return
+    try {
+      ;(window as any).google.accounts.id.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        width: container.offsetWidth || 380,
+        text: 'continue_with',
+        shape: 'rectangular',
+        locale: 'ar',
+      })
+    } catch (e) { console.error('Google renderButton error:', e) }
+  }, [showLogin, showRegister, googleReady])
 
   const doRegister = async () => {
     if (!regName || !regPhone || !regPass) { setToast({ msg: 'يرجى تعبئة جميع الحقول', type: 'error' }); return }
@@ -1529,18 +1554,14 @@ export default function LamsetAlMalika() {
     {showLogin && <Md onClose={() => setShowLogin(false)} title="تسجيل الدخول">
       <p style={{ color:C.textMuted, fontSize:13, marginBottom:16 }}>سجّلي دخولك لمتابعة الحجز والشراء</p>
 
-      {GOOGLE_CLIENT_ID && <button onClick={doGoogleLogin} disabled={authLoading} style={{ width:'100%', padding:'12px 16px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:'#fff', fontSize:14, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:16, transition:'all 0.2s', fontFamily:'inherit' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}>
-        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        تسجيل الدخول بـ Google
-      </button>}
-
-      {GOOGLE_CLIENT_ID && <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-        <div style={{ flex:1, height:1, background:C.border }} />
-        <span style={{ color:C.textDim, fontSize:12, whiteSpace:'nowrap' }}>أو بالجوال وكلمة المرور</span>
-        <div style={{ flex:1, height:1, background:C.border }} />
-      </div>}
+      {GOOGLE_CLIENT_ID && <>
+        <div ref={googleLoginBtnRef} style={{ width:'100%', minHeight:44, marginBottom:16 }} />
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+          <div style={{ flex:1, height:1, background:C.border }} />
+          <span style={{ color:C.textDim, fontSize:12, whiteSpace:'nowrap' }}>أو بالجوال وكلمة المرور</span>
+          <div style={{ flex:1, height:1, background:C.border }} />
+        </div>
+      </>}
 
       <In label="رقم الجوال" value={loginPhone} onChange={setLoginPhone} type="tel" placeholder="05XXXXXXXX" icon={<Phone size={15} />} />
       <In label="كلمة المرور" value={loginPass} onChange={setLoginPass} type="password" icon={<LogIn size={15} />} />
@@ -1555,18 +1576,14 @@ export default function LamsetAlMalika() {
     {showRegister && <Md onClose={() => setShowRegister(false)} title="إنشاء حساب جديد">
       <p style={{ color:C.textMuted, fontSize:13, marginBottom:16 }}>أنشئي حساباً لتتمكني من حجز المواعيد وشراء المنتجات</p>
 
-      {GOOGLE_CLIENT_ID && <button onClick={() => { setShowRegister(false); doGoogleLogin() }} disabled={authLoading} style={{ width:'100%', padding:'12px 16px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:'#fff', fontSize:14, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:16, transition:'all 0.2s', fontFamily:'inherit' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}>
-        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        التسجيل بـ Google
-      </button>}
-
-      {GOOGLE_CLIENT_ID && <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-        <div style={{ flex:1, height:1, background:C.border }} />
-        <span style={{ color:C.textDim, fontSize:12, whiteSpace:'nowrap' }}>أو يدوياً</span>
-        <div style={{ flex:1, height:1, background:C.border }} />
-      </div>}
+      {GOOGLE_CLIENT_ID && <>
+        <div ref={googleRegisterBtnRef} style={{ width:'100%', minHeight:44, marginBottom:16 }} />
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+          <div style={{ flex:1, height:1, background:C.border }} />
+          <span style={{ color:C.textDim, fontSize:12, whiteSpace:'nowrap' }}>أو يدوياً</span>
+          <div style={{ flex:1, height:1, background:C.border }} />
+        </div>
+      </>}
 
       <In label="الاسم" value={regName} onChange={setRegName} icon={<User size={15} />} />
       <In label="رقم الجوال" value={regPhone} onChange={setRegPhone} type="tel" placeholder="05XXXXXXXX" icon={<Phone size={15} />} />
